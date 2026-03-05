@@ -1,0 +1,38 @@
+{
+  "name": "crm-badema",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CRM Badema - Seguimiento de cotizaciones e integración Contabilium",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "sync:contabilium": "tsx scripts/sync-contabilium.ts",
+    "db:seed": "tsx scripts/seed-admin.ts",
+    "db:seed-vendedor-19531": "tsx scripts/seed-vendedor-19531.ts",
+    "db:reset-cotizaciones": "tsx scripts/reset-cotizaciones.ts"
+  },
+  "dependencies": {
+    "next": "^14.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.0.0"
+  }
+}

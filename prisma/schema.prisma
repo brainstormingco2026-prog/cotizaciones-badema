@@ -1,0 +1,89 @@
+// CRM Badema - Modelo de datos (SQLite para desarrollo local)
+// Para producción con PostgreSQL, cambiar provider y usar enums/Json
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite no tiene enums; usamos String. Valores: ADMIN | VENDEDOR
+// Usuarios del CRM (admin y vendedores)
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  name             String
+  password         String
+  role             String   @default("VENDEDOR") // ADMIN | VENDEDOR
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  pushSubscription String?  // JSON string para notificaciones push
+
+  quotations Quotation[]
+  followUps  FollowUp[]
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  externalId String?
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quotations Quotation[]
+}
+
+// Valores followUpFreq: DAYS_3 | DAYS_7 | DAYS_15 | DAYS_30
+model Quotation {
+  id               String    @id @default(cuid())
+  externalId       String    @unique
+  state            String
+  clientId         String
+  client           Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assignedToId     String?
+  assignedTo       User?     @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  successPercent   Int       @default(50)
+  followUpFreq     String?   // DAYS_3 | DAYS_7 | DAYS_15 | DAYS_30
+  nextFollowUpAt   DateTime?
+  lastSyncedAt     DateTime  @default(now())
+  rawData          String?   // JSON string
+  fechaEmision     DateTime? // del payload Contabilium
+  numero           String?   // ej. 0002-00000001
+  importeTotalNeto String?   // ej. 2.000,00
+  observaciones    String?
+  idVendedor       String?   // ID del vendedor en Contabilium
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  followUps FollowUp[]
+
+  @@index([assignedToId, state])
+  @@index([nextFollowUpAt])
+}
+
+model FollowUp {
+  id          String    @id @default(cuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes       String?
+  contactedAt DateTime  @default(now())
+}
+
+model SyncLog {
+  id         String    @id @default(cuid())
+  startedAt DateTime  @default(now())
+  finishedAt DateTime?
+  status    String
+  message   String?
+  stats     String?   // JSON string
+}

@@ -415,6 +415,23 @@
   border-radius: 6px;
   border: 1px solid #fed7aa;
 }
+.cotizacion-sin-seguimiento {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #b45309;
+  background: #fffbeb;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #fcd34d;
+}
+.cotizacion-warning-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
 .cotizacion-client {
   margin-bottom: 0.5rem;
   font-size: 1rem;

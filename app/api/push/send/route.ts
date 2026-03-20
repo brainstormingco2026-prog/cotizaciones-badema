@@ -2,17 +2,12 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import webpush from "web-push";
 
-webpush.setVapidDetails(
-  process.env.VAPID_EMAIL ?? "mailto:admin@badema.com",
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
-  process.env.VAPID_PRIVATE_KEY ?? ""
-);
-
-/**
- * Envía push notifications a los vendedores con seguimientos para hoy.
- * Llamar desde un cron diario (ej. 8:00 AM) o manualmente.
- */
 export async function POST(req: NextRequest) {
+  webpush.setVapidDetails(
+    process.env.VAPID_EMAIL ?? "mailto:admin@badema.com",
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
+    process.env.VAPID_PRIVATE_KEY ?? ""
+  );
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret) {
     if (req.headers.get("x-cron-secret") !== cronSecret) {

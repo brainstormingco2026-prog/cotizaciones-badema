@@ -133,20 +133,6 @@ export default function CotizacionesPage() {
       <div className="cotizaciones-toolbar">
         <h2>Cotizaciones</h2>
         <div className="cotizaciones-toolbar-actions">
-          {user?.role === "ADMIN" && (
-            <div className="cotizaciones-sync">
-              <button type="button" onClick={handleSync} disabled={syncing} className="btn-sync">
-                {syncing ? "Cargando…" : "Cargar cotizaciones"}
-              </button>
-              {syncResult && (
-                <span className="sync-ok">
-                  {syncResult.created} creadas, {syncResult.updated} actualizadas
-                  {syncResult.mock && " (datos de prueba)"}
-                </span>
-              )}
-              {syncError && <span className="sync-err">{syncError}</span>}
-            </div>
-          )}
         </div>
       </div>
 
@@ -172,11 +158,7 @@ export default function CotizacionesPage() {
 
       {loading && <p className="muted">Cargando cotizaciones…</p>}
       {!loading && quotations.length === 0 && (
-        <p className="muted">
-          {user?.role === "ADMIN"
-            ? "No hay cotizaciones. Usá «Cargar cotizaciones» para sincronizar o cargar datos de prueba."
-            : "No hay cotizaciones."}
-        </p>
+        <p className="muted">No hay cotizaciones.</p>
       )}
 
       {!loading && quotations.length > 0 && (

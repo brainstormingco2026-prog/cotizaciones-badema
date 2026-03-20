@@ -9,14 +9,6 @@ import { createContabiliumClient, getContabiliumConfigFromEnv } from "./client";
 import { getMockQuotations } from "./mock";
 import { prisma } from "../db";
 
-// Mapeo estado Contabilium -> estado interno; ajustar según API real
-const STATE_MAP: Record<string, string> = {
-  Borrador: "borrador",
-  Enviada: "enviada",
-  Aceptada: "ganada",
-  Rechazada: "perdida",
-  Pendiente: "abierta",
-};
 
 export type FollowUpFrequency = "DAYS_3" | "DAYS_7" | "DAYS_15" | "DAYS_30";
 
@@ -133,9 +125,10 @@ export async function syncQuotationsFromContabilium(): Promise<{
         // API real usa IdCliente/RazonSocial en raíz; legacy usa Cliente anidado
         const clientId = ext.IdCliente ?? ext.Cliente?.Id ?? ext.Id;
         const clientName = ext.RazonSocial ?? ext.Cliente?.RazonSocial ?? "Sin nombre";
-        const clientEmail = ext.Cliente?.Email ?? undefined;
-        const clientPhone = ext.Cliente?.Telefono ?? undefined;
-        const state = STATE_MAP[ext.Estado ?? ""] ?? (ext.Estado ?? "abierta").toLowerCase();
+        const raw2 = ext as Record<string, unknown>;
+        const clientEmail = ext.Cliente?.Email ?? (raw2.Email as string | undefined) ?? undefined;
+        const clientPhone = ext.Cliente?.Telefono ?? (raw2.Telefono as string | undefined) ?? (raw2.Celular as string | undefined) ?? undefined;
+        const state = (ext.Estado ?? "pendiente").toLowerCase();
 
         let client = await prisma.client.findFirst({
           where: { externalId: String(clientId) },
@@ -149,6 +142,14 @@ export async function syncQuotationsFromContabilium(): Promise<{
               phone: clientPhone ?? null,
             },
           });
+        } else if (clientEmail || clientPhone) {
+          client = await prisma.client.update({
+            where: { id: client.id },
+            data: {
+              ...(clientEmail ? { email: clientEmail } : {}),
+              ...(clientPhone ? { phone: clientPhone } : {}),
+            },
+          });
         }
 
         const existing = await prisma.quotation.findUnique({
@@ -158,6 +159,7 @@ export async function syncQuotationsFromContabilium(): Promise<{
         // Fecha emisión, Número, Importe neto, Observaciones e Id. vendedor se heredan del payload de Contabilium
         const comprobante = getComprobanteFromPayload(ext);
 
+        const closedState = state === "aceptada" || state === "rechazada";
         const payload = {
           externalId: String(ext.Id),
           state,
@@ -169,6 +171,7 @@ export async function syncQuotationsFromContabilium(): Promise<{
           importeTotalNeto: comprobante.importeTotalNeto,
           observaciones: comprobante.observaciones,
           idVendedor: comprobante.idVendedor,
+          ...(closedState ? { followUpFreq: null, nextFollowUpAt: null } : {}),
         };
 
         if (existing) {

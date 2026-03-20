@@ -18,12 +18,13 @@
     "db:reset-cotizaciones": "tsx scripts/reset-cotizaciones.ts"
   },
   "dependencies": {
-    "next": "^14.2.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
+    "next": "^14.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "web-push": "^3.6.7",
     "zod": "^3.23.0"
   },
   "devDependencies": {
@@ -31,6 +32,7 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
+    "@types/web-push": "^3.6.4",
     "prisma": "^5.22.0",
     "tsx": "^4.19.0",
     "typescript": "^5.0.0"

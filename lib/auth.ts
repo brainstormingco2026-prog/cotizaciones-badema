@@ -53,14 +53,14 @@ export function getTokenFromRequest(req: {
 export async function requireAuth(
   req: { headers?: { authorization?: string }; cookies?: Record<string, string> },
   roleRequired?: Role
-): Promise<{ user: { id: string; email: string; name: string; role: string } } | { error: string; status: number }> {
+): Promise<{ user: { id: string; email: string; name: string; role: string; contabiliumId: string | null } } | { error: string; status: number }> {
   const token = getTokenFromRequest(req);
   if (!token) return { error: "No autorizado", status: 401 };
   const payload = verifyToken(token);
   if (!payload) return { error: "Token inválido o expirado", status: 401 };
   const user = await prisma.user.findUnique({
     where: { id: payload.userId },
-    select: { id: true, email: true, name: true, role: true },
+    select: { id: true, email: true, name: true, role: true, contabiliumId: true },
   });
   if (!user) return { error: "Usuario no encontrado", status: 401 };
   if (roleRequired && user.role !== roleRequired) return { error: "Sin permisos", status: 403 };
@@ -70,7 +70,13 @@ export async function requireAuth(
 /**
  * Para vendedor: solo puede ver recursos asignados a él.
  */
-export function canSeeQuotation(quotationAssignedToId: string | null, user: { id: string; role: string }): boolean {
+export function canSeeQuotation(
+  quotationAssignedToId: string | null,
+  user: { id: string; role: string; contabiliumId?: string | null },
+  quotationIdVendedor?: string | null
+): boolean {
   if (user.role === "ADMIN") return true;
-  return quotationAssignedToId === user.id;
+  if (quotationAssignedToId === user.id) return true;
+  if (user.contabiliumId && quotationIdVendedor === user.contabiliumId) return true;
+  return false;
 }

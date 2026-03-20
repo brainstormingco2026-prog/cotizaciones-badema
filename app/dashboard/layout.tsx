@@ -9,6 +9,30 @@ function getToken() {
   return localStorage.getItem("crm_token");
 }
 
+async function registerPush() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.register("/sw.js");
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return;
+
+    const existing = await reg.pushManager.getSubscription();
+    const sub = existing ?? await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    });
+
+    const token = localStorage.getItem("crm_token");
+    await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(sub),
+    });
+  } catch {
+    // Push no disponible en este dispositivo/navegador
+  }
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -17,6 +41,8 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
+  const [alerts, setAlerts] = useState<{ id: string; externalId: string; client: { name: string } }[]>([]);
+  const [showAlerts, setShowAlerts] = useState(false);
 
   useEffect(() => {
     const u = localStorage.getItem("crm_user");
@@ -25,6 +51,20 @@ export default function DashboardLayout({
       return;
     }
     setUser(JSON.parse(u));
+    registerPush();
+
+    // Chequear seguimientos de hoy
+    const token = localStorage.getItem("crm_token");
+    fetch("/api/notifications/follow-up-alerts", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.ok ? r.json() : { count: 0, alerts: [] })
+      .then((d) => {
+        if (d.count > 0) {
+          setAlerts(d.alerts);
+          setShowAlerts(true);
+        }
+      });
   }, [router]);
 
   function handleLogout() {
@@ -43,14 +83,47 @@ export default function DashboardLayout({
 
   return (
     <main className="dashboard">
+      {showAlerts && (
+        <div className="followup-toast">
+          <div className="followup-toast-content">
+            <span className="followup-toast-icon">🔔</span>
+            <div className="followup-toast-body">
+              <strong>Seguimientos para hoy</strong>
+              <ul className="followup-toast-list">
+                {alerts.map((a) => (
+                  <li key={a.id}>
+                    <Link href={`/dashboard/cotizaciones/${a.id}`} onClick={() => setShowAlerts(false)}>
+                      #{a.externalId} — {a.client.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <button type="button" className="followup-toast-close" onClick={() => setShowAlerts(false)}>✕</button>
+          </div>
+        </div>
+      )}
       <header className="dashboard-header">
         <div className="dashboard-header-left">
-          <h1>CRM Badema</h1>
+          <h1>Cotizaciones Badema</h1>
           <p className="user">Hola, {user.name} · {user.role === "ADMIN" ? "Administrador" : "Vendedor"}</p>
         </div>
-        <button type="button" className="logout" onClick={handleLogout}>
-          Cerrar sesión
-        </button>
+        <div className="dashboard-header-right">
+          {alerts.length > 0 && (
+            <button
+              type="button"
+              className="notif-bell"
+              onClick={() => setShowAlerts((v) => !v)}
+              title={`${alerts.length} seguimiento${alerts.length !== 1 ? "s" : ""} hoy`}
+            >
+              🔔
+              <span className="notif-badge">{alerts.length}</span>
+            </button>
+          )}
+          <button type="button" className="logout" onClick={handleLogout}>
+            Cerrar sesión
+          </button>
+        </div>
       </header>
       <nav className="dashboard-nav">
         {navItems.map(({ href, label }) => (

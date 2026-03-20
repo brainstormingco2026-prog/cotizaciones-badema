@@ -29,7 +29,7 @@ export async function GET(
   if (!quotation) {
     return Response.json({ error: "Cotización no encontrada" }, { status: 404 });
   }
-  if (!canSeeQuotation(quotation.assignedToId, auth.user)) {
+  if (!canSeeQuotation(quotation.assignedToId, auth.user, quotation.idVendedor)) {
     return Response.json({ error: "Sin permisos" }, { status: 403 });
   }
   return Response.json(enrichIdVendedorFromRawData(quotation));
@@ -48,7 +48,7 @@ export async function PATCH(
   if (!quotation) {
     return Response.json({ error: "Cotización no encontrada" }, { status: 404 });
   }
-  if (!canSeeQuotation(quotation.assignedToId, auth.user)) {
+  if (!canSeeQuotation(quotation.assignedToId, auth.user, quotation.idVendedor)) {
     return Response.json({ error: "Sin permisos" }, { status: 403 });
   }
   const parsed = patchSchema.safeParse(await req.json());

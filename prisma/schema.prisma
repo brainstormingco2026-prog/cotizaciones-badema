@@ -18,6 +18,7 @@ model User {
   name             String
   password         String
   role             String   @default("VENDEDOR") // ADMIN | VENDEDOR
+  contabiliumId    String?  // ID vendedor en Contabilium (ej. "19531")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   pushSubscription String?  // JSON string para notificaciones push

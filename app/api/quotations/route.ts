@@ -14,7 +14,11 @@ export async function GET(req: NextRequest) {
 
   const where: Parameters<typeof prisma.quotation.findMany>[0]["where"] = {};
   if (user.role === "VENDEDOR") {
-    where.assignedToId = user.id;
+    if (user.contabiliumId) {
+      where.idVendedor = user.contabiliumId;
+    } else {
+      where.assignedToId = user.id;
+    }
   } else if (assignedToMe) {
     where.assignedToId = user.id;
   }
@@ -30,7 +34,7 @@ export async function GET(req: NextRequest) {
   });
 
   const filtered =
-    user.role === "ADMIN"
+    user.role === "ADMIN" || (user.role === "VENDEDOR" && !!user.contabiliumId)
       ? quotations
       : quotations.filter((q) => canSeeQuotation(q.assignedToId, user));
 

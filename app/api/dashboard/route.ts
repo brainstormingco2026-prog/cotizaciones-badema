@@ -2,70 +2,76 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 
-/**
- * Panel de control: cotizaciones abiertas, ganadas, perdidas, posibilidad de cierre; agrupado por vendedor.
- */
+const STATES = ["borrador", "enviada", "aceptada", "rechazada", "pendiente"] as const;
+
+function parseImporte(s: string | null): number {
+  if (!s) return 0;
+  const n = parseFloat(s.replace(/\./g, "").replace(",", "."));
+  return isNaN(n) ? 0 : n;
+}
+
+function formatARS(n: number): string {
+  return n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/** Lunes de la semana de una fecha dada */
+function startOfWeek(d: Date): Date {
+  const day = d.getDay(); // 0=dom, 1=lun...
+  const diff = (day === 0 ? -6 : 1 - day);
+  const monday = new Date(d);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(d.getDate() + diff);
+  return monday;
+}
+
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req);
   if ("error" in auth) {
     return Response.json({ error: auth.error }, { status: auth.status });
   }
-  const { user } = auth;
 
-  if (user.role === "VENDEDOR") {
-    const [abiertas, ganadas, perdidas] = await Promise.all([
-      prisma.quotation.count({ where: { assignedToId: user.id, state: { in: ["abierta", "activa"] } } }),
-      prisma.quotation.count({ where: { assignedToId: user.id, state: "ganada" } }),
-      prisma.quotation.count({ where: { assignedToId: user.id, state: "perdida" } }),
-    ]);
-    const porCierre = await prisma.quotation.findMany({
-      where: { assignedToId: user.id, state: { in: ["abierta", "activa"] } },
-      select: { id: true, externalId: true, successPercent: true, nextFollowUpAt: true, client: { select: { name: true } } },
-      orderBy: { successPercent: "desc" },
-      take: 10,
-    });
-    return Response.json({
-      byVendor: [
-        {
-          vendorId: user.id,
-          vendorName: user.name,
-          abiertas,
-          ganadas,
-          perdidas,
-          porCierre,
-        },
-      ],
-    });
-  }
+  // Filtro por vendedor si corresponde
+  const vendedorFilter =
+    auth.user.role === "VENDEDOR" && auth.user.contabiliumId
+      ? { idVendedor: auth.user.contabiliumId }
+      : auth.user.role === "VENDEDOR"
+      ? { assignedToId: auth.user.id }
+      : {};
 
-  const vendors = await prisma.user.findMany({
-    where: { role: "VENDEDOR" },
-    select: { id: true, name: true },
+  // Widgets por estado
+  const quotations = await prisma.quotation.findMany({
+    where: vendedorFilter,
+    select: { state: true, importeTotalNeto: true },
   });
 
-  const byVendor = await Promise.all(
-    vendors.map(async (v) => {
-      const [abiertas, ganadas, perdidas] = await Promise.all([
-        prisma.quotation.count({ where: { assignedToId: v.id, state: { in: ["abierta", "activa"] } } }),
-        prisma.quotation.count({ where: { assignedToId: v.id, state: "ganada" } }),
-        prisma.quotation.count({ where: { assignedToId: v.id, state: "perdida" } }),
-      ]);
-      const porCierre = await prisma.quotation.findMany({
-        where: { assignedToId: v.id, state: { in: ["abierta", "activa"] } },
-        select: { id: true, externalId: true, successPercent: true, nextFollowUpAt: true, client: { select: { name: true } } },
-        orderBy: { successPercent: "desc" },
-        take: 5,
-      });
-      return {
-        vendorId: v.id,
-        vendorName: v.name,
-        abiertas,
-        ganadas,
-        perdidas,
-        porCierre,
-      };
-    })
-  );
+  const byState = STATES.map((state) => {
+    const items = quotations.filter((q) => q.state === state);
+    const total = items.reduce((sum, q) => sum + parseImporte(q.importeTotalNeto), 0);
+    return { state, count: items.length, totalNeto: formatARS(total) };
+  });
 
-  return Response.json({ byVendor });
+  // Calendario semanal: cotizaciones con nextFollowUpAt en la semana laboral actual (lun-vie)
+  const monday = startOfWeek(new Date());
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 11); // 2 semanas (lun a vie x2)
+  friday.setHours(23, 59, 59, 999);
+
+  const weekFollowUps = await prisma.quotation.findMany({
+    where: {
+      ...vendedorFilter,
+      nextFollowUpAt: { gte: monday, lte: friday },
+    },
+    select: {
+      id: true,
+      externalId: true,
+      nextFollowUpAt: true,
+      state: true,
+      importeTotalNeto: true,
+      client: { select: { name: true } },
+      assignedTo: { select: { name: true } },
+    },
+    orderBy: { nextFollowUpAt: "asc" },
+  });
+
+  return Response.json({ byState, weekFollowUps });
 }

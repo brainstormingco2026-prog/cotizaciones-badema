@@ -18,12 +18,13 @@ async function main() {
   const hash = await bcrypt.hash(password, 10);
   const user = await prisma.user.upsert({
     where: { email },
-    update: { name, password: hash, role: "VENDEDOR" },
+    update: { name, password: hash, role: "VENDEDOR", contabiliumId: CONTABILIUM_ID },
     create: {
       email,
       name,
       password: hash,
       role: "VENDEDOR",
+      contabiliumId: CONTABILIUM_ID,
     },
   });
   console.log("Vendedor creado:", user.email, "| nombre:", user.name, "| role:", user.role);

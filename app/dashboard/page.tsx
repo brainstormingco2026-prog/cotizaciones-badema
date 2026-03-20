@@ -9,132 +9,135 @@ function getAuthHeader() {
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
-type DashboardVendor = {
-  vendorId: string;
-  vendorName: string;
-  abiertas: number;
-  ganadas: number;
-  perdidas: number;
-  porCierre: Array<{
-    id: string;
-    externalId: string;
-    successPercent: number;
-    nextFollowUpAt: string | null;
-    client: { name: string };
-  }>;
+type StateWidget = { state: string; count: number; totalNeto: string };
+
+type FollowUp = {
+  id: string;
+  externalId: string;
+  nextFollowUpAt: string;
+  state: string;
+  importeTotalNeto: string | null;
+  client: { name: string };
+  assignedTo: { name: string } | null;
 };
 
+const STATE_LABELS: Record<string, string> = {
+  borrador: "Borrador",
+  pendiente: "Pendiente",
+  enviada: "Enviada",
+  aceptada: "Aprobada",
+  rechazada: "Rechazada",
+};
+
+const STATE_ORDER = ["borrador", "pendiente", "enviada", "aceptada", "rechazada"];
+
+const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+
+function getMondayOfCurrentWeek(): Date {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(d.getDate() + diff);
+  return monday;
+}
+
 export default function PanelControlPage() {
-  const [data, setData] = useState<{ byVendor: DashboardVendor[] } | null>(null);
+  const [byState, setByState] = useState<StateWidget[]>([]);
+  const [weekFollowUps, setWeekFollowUps] = useState<FollowUp[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<{ role: string; id: string } | null>(null);
-  const [vendorFilter, setVendorFilter] = useState<string>(""); // "" = Todos, o vendorId
 
   useEffect(() => {
-    const u = localStorage.getItem("crm_user");
-    if (u) setUser(JSON.parse(u));
+    fetch("/api/dashboard", { headers: getAuthHeader() })
+      .then((r) => (r.ok ? r.json() : { byState: [], weekFollowUps: [] }))
+      .then((d) => {
+        setByState(d.byState ?? []);
+        setWeekFollowUps(d.weekFollowUps ?? []);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/dashboard", { headers: getAuthHeader() });
-        if (!res.ok) return;
-        const json = await res.json();
-        if (!cancelled) setData(json);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  const monday = getMondayOfCurrentWeek();
 
-  const byVendor = data?.byVendor ?? [];
-  const selectedVendors = vendorFilter
-    ? byVendor.filter((v) => v.vendorId === vendorFilter)
-    : byVendor;
+  // Agrupar follow-ups por día (0=lun … 9=vie semana 2)
+  const byDay: FollowUp[][] = Array.from({ length: 10 }, (_, i) => {
+    const day = new Date(monday);
+    day.setDate(monday.getDate() + i);
+    return weekFollowUps.filter((f) => {
+      const d = new Date(f.nextFollowUpAt);
+      return (
+        d.getFullYear() === day.getFullYear() &&
+        d.getMonth() === day.getMonth() &&
+        d.getDate() === day.getDate()
+      );
+    });
+  });
 
-  const totals = {
-    abiertas: selectedVendors.reduce((s, v) => s + v.abiertas, 0),
-    ganadas: selectedVendors.reduce((s, v) => s + v.ganadas, 0),
-    perdidas: selectedVendors.reduce((s, v) => s + v.perdidas, 0),
-  };
-
-  const isAdmin = user?.role === "ADMIN";
+  const today = new Date();
 
   return (
     <div className="dashboard-cards">
-      {loading && !data && <p className="muted">Cargando métricas…</p>}
-
-      {data && (
+      {loading && <p className="muted">Cargando métricas…</p>}
+      {!loading && (
         <>
-          {isAdmin && byVendor.length > 1 && (
-            <div className="card card-filter">
-              <label>
-                Filtrar por vendedor
-                <select
-                  value={vendorFilter}
-                  onChange={(e) => setVendorFilter(e.target.value)}
-                  className="vendor-select"
-                  aria-label="Vendedor"
-                >
-                  <option value="">Todos</option>
-                  {byVendor.map((v) => (
-                    <option key={v.vendorId} value={v.vendorId}>
-                      {v.vendorName}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          )}
-
-          <div className="card card-widgets">
-            <h2>{vendorFilter ? selectedVendors[0]?.vendorName ?? "Vendedor" : "Totales"}</h2>
-            <div className="metrics-grid">
-              <div className="metric">
-                <span className="metric-value">{totals.abiertas}</span>
-                <span className="metric-label">Cotizaciones abiertas</span>
-                <span className="metric-cantidad">{totals.abiertas} cotización{totals.abiertas !== 1 ? "es" : ""}</span>
+          {/* Widgets por estado */}
+          <div className="estado-widgets">
+            {[...byState].sort((a, b) => STATE_ORDER.indexOf(a.state) - STATE_ORDER.indexOf(b.state)).map((w) => (
+              <div key={w.state} className={`estado-widget estado-widget-${w.state}`}>
+                <span className={`estado-widget-label cotizacion-state state-${w.state}`}>
+                  {STATE_LABELS[w.state] ?? w.state}
+                </span>
+                <span className="estado-widget-count">{w.count}</span>
+                <span className="estado-widget-count-label">
+                  cotización{w.count !== 1 ? "es" : ""}
+                </span>
+                <span className="estado-widget-total">$ {w.totalNeto}</span>
+                <span className="estado-widget-total-label">importe neto total</span>
               </div>
-              <div className="metric">
-                <span className="metric-value metric-ganadas">{totals.ganadas}</span>
-                <span className="metric-label">Cotizaciones ganadas</span>
-                <span className="metric-cantidad">{totals.ganadas} cotización{totals.ganadas !== 1 ? "es" : ""}</span>
-              </div>
-              <div className="metric">
-                <span className="metric-value metric-perdidas">{totals.perdidas}</span>
-                <span className="metric-label">Cotizaciones perdidas</span>
-                <span className="metric-cantidad">{totals.perdidas} cotización{totals.perdidas !== 1 ? "es" : ""}</span>
-              </div>
-            </div>
+            ))}
           </div>
 
-          {selectedVendors.flatMap((v) =>
-            (v.porCierre ?? []).length > 0
-              ? [
-                  <div key={v.vendorId} className="card card-metrics">
-                    <h2>Posibilidad de cierre{vendorFilter ? "" : ` · ${v.vendorName}`}</h2>
-                    <ul className="por-cierre-list">
-                      {v.porCierre.map((q) => (
-                        <li key={q.id}>
-                          <Link href={`/dashboard/cotizaciones/${q.id}`} className="q-client">
-                            {q.client.name}
+          {/* Calendario semanal */}
+          <div className="semana-calendario">
+            <h3 className="semana-titulo">Seguimientos — próximas 2 semanas</h3>
+            <div className="semana-grid">
+              {DAYS.map((dayName, i) => {
+                const dayDate = new Date(monday);
+                dayDate.setDate(monday.getDate() + i);
+                const isToday =
+                  dayDate.getDate() === today.getDate() &&
+                  dayDate.getMonth() === today.getMonth() &&
+                  dayDate.getFullYear() === today.getFullYear();
+                const items = byDay[i];
+                return (
+                  <div key={i} className={`semana-dia${isToday ? " semana-dia-hoy" : ""}`}>
+                    <div className="semana-dia-header">
+                      <span className="semana-dia-nombre">{dayName}</span>
+                      <span className="semana-dia-fecha">
+                        {dayDate.toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+                      </span>
+                    </div>
+                    <div className="semana-dia-items">
+                      {items.length === 0 ? (
+                        <span className="semana-vacio">—</span>
+                      ) : (
+                        items.map((f) => (
+                          <Link key={f.id} href={`/dashboard/cotizaciones/${f.id}`} className="semana-item">
+                            <span className={`semana-item-state state-dot-${f.state}`} />
+                            <span className="semana-item-cliente">{f.client.name}</span>
+                            {f.importeTotalNeto && (
+                              <span className="semana-item-importe">${f.importeTotalNeto}</span>
+                            )}
                           </Link>
-                          <span className="q-percent">{q.successPercent}%</span>
-                          {q.nextFollowUpAt && (
-                            <span className="q-date">
-                              Seguimiento: {new Date(q.nextFollowUpAt).toLocaleDateString("es-AR")}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>,
-                ]
-              : []
-          )}
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </>
       )}
     </div>

@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { NextRequest } from "next/server";
 import { prisma } from "./db";
 
 const JWT_SECRET = process.env.JWT_SECRET ?? "change-me-in-production";
@@ -30,20 +31,11 @@ export function verifyToken(token: string): JwtPayload | null {
   }
 }
 
-export function getTokenFromRequest(req: {
-  headers?: Headers | { get?(name: string): string | null; authorization?: string };
-  cookies?: { get?(name: string): string | undefined } | Record<string, string>;
-}): string | null {
-  const headers = req.headers;
-  if (headers) {
-    const auth = typeof headers.get === "function" ? headers.get("authorization") : (headers as { authorization?: string }).authorization;
-    if (auth?.startsWith("Bearer ")) return auth.slice(7);
-  }
-  const cookies = req.cookies;
-  if (cookies) {
-    const cookie = typeof cookies.get === "function" ? cookies.get("auth") : (cookies as Record<string, string>).auth;
-    if (cookie) return cookie;
-  }
+export function getTokenFromRequest(req: NextRequest): string | null {
+  const auth = req.headers.get("authorization");
+  if (auth?.startsWith("Bearer ")) return auth.slice(7);
+  const cookie = req.cookies.get("auth")?.value;
+  if (cookie) return cookie;
   return null;
 }
 
@@ -51,7 +43,7 @@ export function getTokenFromRequest(req: {
  * Verifica JWT y devuelve el usuario; si roleRequired está definido, exige ese rol.
  */
 export async function requireAuth(
-  req: { headers?: { authorization?: string }; cookies?: Record<string, string> },
+  req: NextRequest,
   roleRequired?: Role
 ): Promise<{ user: { id: string; email: string; name: string; role: string; contabiliumId: string | null } } | { error: string; status: number }> {
   const token = getTokenFromRequest(req);

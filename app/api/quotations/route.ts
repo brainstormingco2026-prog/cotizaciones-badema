@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireAuth, canSeeQuotation } from "@/lib/auth";
 import { enrichIdVendedorFromRawData } from "@/lib/quotations-enrich";
@@ -9,10 +10,10 @@ export async function GET(req: NextRequest) {
     return Response.json({ error: auth.error }, { status: auth.status });
   }
   const { user } = auth;
-  const state = req.nextUrl.searchParams.get("state"); // abierta | ganada | perdida | borrador
+  const state = req.nextUrl.searchParams.get("state");
   const assignedToMe = req.nextUrl.searchParams.get("mine") === "true";
 
-  const where: Parameters<typeof prisma.quotation.findMany>[0]["where"] = {};
+  const where: Prisma.QuotationWhereInput = {};
   if (user.role === "VENDEDOR") {
     if (user.contabiliumId) {
       where.idVendedor = user.contabiliumId;

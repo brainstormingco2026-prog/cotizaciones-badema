@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-function getAuthHeader() {
+function getAuthHeader(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const t = localStorage.getItem("crm_token");
   return t ? { Authorization: `Bearer ${t}` } : {};
@@ -60,10 +60,15 @@ export default function PanelControlPage() {
 
   const monday = getMondayOfCurrentWeek();
 
-  // Agrupar follow-ups por día (0=lun … 9=vie semana 2)
+  // Cada slot es un día hábil: semana 1 = offset 0-4, semana 2 = offset 7-11
+  function weekdayOffset(slot: number): number {
+    return Math.floor(slot / 5) * 7 + (slot % 5);
+  }
+
+  // Agrupar follow-ups por día hábil (0=lun … 9=vie semana 2)
   const byDay: FollowUp[][] = Array.from({ length: 10 }, (_, i) => {
     const day = new Date(monday);
-    day.setDate(monday.getDate() + i);
+    day.setDate(monday.getDate() + weekdayOffset(i));
     return weekFollowUps.filter((f) => {
       const d = new Date(f.nextFollowUpAt);
       return (
@@ -104,7 +109,7 @@ export default function PanelControlPage() {
             <div className="semana-grid">
               {DAYS.map((dayName, i) => {
                 const dayDate = new Date(monday);
-                dayDate.setDate(monday.getDate() + i);
+                dayDate.setDate(monday.getDate() + weekdayOffset(i));
                 const isToday =
                   dayDate.getDate() === today.getDate() &&
                   dayDate.getMonth() === today.getMonth() &&

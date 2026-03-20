@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { signToken } from "@/lib/auth";
+import { signToken, type Role } from "@/lib/auth";
 
 const bodySchema = z.object({
   email: z.string().email(),
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   const token = signToken({
     userId: user.id,
     email: user.email,
-    role: user.role,
+    role: user.role as Role,
   });
   return Response.json({
     token,

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
-function getAuthHeader() {
+function getAuthHeader(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const t = localStorage.getItem("crm_token");
   return t ? { Authorization: `Bearer ${t}` } : {};

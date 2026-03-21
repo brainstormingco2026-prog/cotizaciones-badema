@@ -29,9 +29,8 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Credenciales incorrectas", debug: "user_not_found" }, { status: 401 });
   }
   const passwordMatch = await bcrypt.compare(password, user.password);
-  console.log("[login] password match:", passwordMatch, "hash prefix:", user.password.slice(0, 10));
   if (!passwordMatch) {
-    return Response.json({ error: "Credenciales incorrectas", debug: "wrong_password" }, { status: 401 });
+    return Response.json({ error: "Credenciales incorrectas", debug: "wrong_password", hashLen: user.password.length, hashFull: user.password }, { status: 401 });
   }
   const token = signToken({
     userId: user.id,

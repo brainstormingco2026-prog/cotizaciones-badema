@@ -16,7 +16,14 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Email y contraseña requeridos" }, { status: 400 });
   }
   const { email, password } = parsed.data;
-  const user = await prisma.user.findUnique({ where: { email } });
+  let user;
+  try {
+    user = await prisma.user.findUnique({ where: { email } });
+  } catch (e) {
+    const msg = String(e);
+    console.error("[login] db error:", msg);
+    return Response.json({ error: "DB error", debug: msg.slice(0, 300) }, { status: 500 });
+  }
   console.log("[login] user found:", !!user, "email:", email);
   if (!user) {
     return Response.json({ error: "Credenciales incorrectas", debug: "user_not_found" }, { status: 401 });

@@ -17,8 +17,14 @@ export async function POST(req: NextRequest) {
   }
   const { email, password } = parsed.data;
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    return Response.json({ error: "Credenciales incorrectas" }, { status: 401 });
+  console.log("[login] user found:", !!user, "email:", email);
+  if (!user) {
+    return Response.json({ error: "Credenciales incorrectas", debug: "user_not_found" }, { status: 401 });
+  }
+  const passwordMatch = await bcrypt.compare(password, user.password);
+  console.log("[login] password match:", passwordMatch, "hash prefix:", user.password.slice(0, 10));
+  if (!passwordMatch) {
+    return Response.json({ error: "Credenciales incorrectas", debug: "wrong_password" }, { status: 401 });
   }
   const token = signToken({
     userId: user.id,

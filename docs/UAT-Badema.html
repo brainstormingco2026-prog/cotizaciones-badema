@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM Badema — Presentación UAT</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --navy: #003366;
+    --navy-dark: #002244;
+    --navy-mid: #004080;
+    --blue-light: #e6eef5;
+    --blue-accent: #1a6fb5;
+    --text: #1a2a3a;
+    --muted: #5a6c7d;
+    --border: #d1dce8;
+    --bg: #f5f7fa;
+    --white: #ffffff;
+    --green: #276749;
+    --green-light: #e6f4ed;
+    --orange: #c05621;
+    --orange-light: #fef3e2;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    background: var(--white);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* ── COVER PAGE ── */
+  .cover {
+    min-height: 100vh;
+    background: linear-gradient(160deg, var(--navy) 0%, var(--navy-dark) 60%, #001833 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 60px 70px;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -120px; right: -120px;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.03);
+  }
+
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: -80px;
+    width: 380px; height: 380px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+
+  .cover-top { position: relative; z-index: 1; }
+
+  .logo-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 80px;
+  }
+
+  .logo-icon {
+    width: 52px; height: 52px;
+    background: rgba(255,255,255,0.12);
+    border: 1.5px solid rgba(255,255,255,0.25);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+  }
+
+  .logo-text {
+    color: white;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+  }
+
+  .logo-sub {
+    color: rgba(255,255,255,0.5);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .cover-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.8);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 20px;
+    margin-bottom: 32px;
+  }
+
+  .cover-title {
+    color: white;
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    letter-spacing: -0.02em;
+  }
+
+  .cover-title span {
+    color: rgba(255,255,255,0.45);
+  }
+
+  .cover-subtitle {
+    color: rgba(255,255,255,0.65);
+    font-size: 18px;
+    font-weight: 400;
+    max-width: 520px;
+    line-height: 1.6;
+    margin-bottom: 56px;
+  }
+
+  .cover-stats {
+    display: flex;
+    gap: 40px;
+  }
+
+  .cover-stat {
+    border-left: 2px solid rgba(255,255,255,0.2);
+    padding-left: 20px;
+  }
+
+  .cover-stat-num {
+    color: white;
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .cover-stat-label {
+    color: rgba(255,255,255,0.5);
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .cover-bottom {
+    position: relative; z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 28px;
+  }
+
+  .cover-url {
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .cover-url strong { color: white; }
+
+  .cover-date {
+    color: rgba(255,255,255,0.4);
+    font-size: 11px;
+    text-align: right;
+  }
+
+  /* ── PAGES ── */
+  .page {
+    padding: 56px 64px;
+    page-break-after: always;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page:last-child { page-break-after: avoid; }
+
+  /* ── SECTION HEADER ── */
+  .section-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--blue-light);
+    color: var(--navy);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+
+  .section-tag::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--navy);
+  }
+
+  .section-title {
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--navy);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  .section-desc {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 36px;
+    max-width: 600px;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 32px 0;
+  }
+
+  /* ── CREDENTIALS BOX ── */
+  .credentials-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+
+  .credential-card {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .credential-card-header {
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .credential-card.admin .credential-card-header {
+    background: var(--navy);
+    color: white;
+  }
+
+  .credential-card.vendedor .credential-card-header {
+    background: var(--blue-accent);
+    color: white;
+  }
+
+  .cred-icon {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  .cred-role {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 1px;
+  }
+
+  .cred-role-sub {
+    font-size: 10px;
+    opacity: 0.7;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .credential-card-body {
+    padding: 20px 24px;
+    background: white;
+  }
+
+  .cred-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .cred-row:last-child { margin-bottom: 0; }
+
+  .cred-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    width: 80px;
+    flex-shrink: 0;
+  }
+
+  .cred-value {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--bg);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    flex: 1;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+  }
+
+  .url-box {
+    background: var(--navy);
+    border-radius: 14px;
+    padding: 20px 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .url-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .url-label {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .url-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -0.01em;
+  }
+
+  .url-note {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    margin-top: 3px;
+  }
+
+  /* ── FEATURES ── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    page-break-inside: avoid;
+  }
+
+  .feature-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: white;
+    position: relative;
+    overflow: hidden;
+    page-break-inside: avoid;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--navy);
+  }
+
+  .feature-card.accent::before { background: var(--blue-accent); }
+  .feature-card.green::before { background: var(--green); }
+  .feature-card.orange::before { background: var(--orange); }
+
+  .feature-icon {
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+
+  .feature-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 3px;
+  }
+
+  .feature-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.45;
+    margin-bottom: 8px;
+  }
+
+  .feature-bullets {
+    list-style: none;
+  }
+
+  .feature-bullets li {
+    font-size: 11px;
+    color: var(--text);
+    padding: 2px 0;
+    padding-left: 14px;
+    position: relative;
+  }
+
+  .feature-bullets li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--navy);
+    font-weight: 600;
+  }
+
+  /* ── ROLES TABLE ── */
+  .roles-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .roles-table th {
+    padding: 14px 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-align: left;
+  }
+
+  .roles-table th:first-child { background: var(--bg); color: var(--muted); }
+  .roles-table th.admin-col { background: var(--navy); color: white; text-align: center; }
+  .roles-table th.vend-col { background: var(--blue-accent); color: white; text-align: center; }
+
+  .roles-table td {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px;
+  }
+
+  .roles-table td:not(:first-child) { text-align: center; }
+
+  .roles-table tr:nth-child(even) td { background: var(--bg); }
+
+  .check { color: var(--green); font-size: 16px; font-weight: 700; }
+  .cross { color: #c53030; font-size: 16px; font-weight: 700; }
+
+  /* ── CHECKLIST ── */
+  .checklist-section { margin-bottom: 28px; }
+
+  .checklist-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .checklist-title .step-num {
+    width: 24px; height: 24px;
+    background: var(--navy);
+    color: white;
+    border-radius: 50%;
+    font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .checklist {
+    list-style: none;
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 16px 20px;
+  }
+
+  .checklist li {
+    font-size: 12px;
+    padding: 6px 0;
+    padding-left: 24px;
+    position: relative;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .checklist li:last-child { border-bottom: none; }
+
+  .checklist li::before {
+    content: '☐';
+    position: absolute;
+    left: 0;
+    color: var(--border);
+    font-size: 15px;
+    line-height: 1.2;
+  }
+
+  /* ── NEXT STEPS ── */
+  .next-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .step-card {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    display: flex;
+  }
+
+  .step-number {
+    width: 64px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 900;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: -0.04em;
+  }
+
+  .step-card.step-1 .step-number { background: var(--navy); }
+  .step-card.step-2 .step-number { background: var(--blue-accent); }
+  .step-card.step-3 .step-number { background: var(--green); }
+
+  .step-content { padding: 22px 24px; flex: 1; }
+
+  .step-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .step-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--navy);
+    margin-bottom: 8px;
+  }
+
+  .step-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+
+  .step-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .step-item {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+  }
+
+  .step-1 .step-item { background: var(--blue-light); color: var(--navy); }
+  .step-2 .step-item { background: #e6f0fa; color: var(--blue-accent); }
+  .step-3 .step-item { background: var(--green-light); color: var(--green); }
+
+  /* ── NEEDS TABLE ── */
+  .needs-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .needs-table th {
+    padding: 12px 18px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    background: var(--navy);
+    color: white;
+    text-align: left;
+  }
+
+  .needs-table td {
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    vertical-align: top;
+  }
+
+  .needs-table tr:nth-child(even) td { background: var(--bg); }
+
+  .needs-table td:first-child { font-weight: 600; color: var(--navy); }
+
+  /* ── MOBILE OPTIONS ── */
+  .mobile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+
+  .mobile-card {
+    border-radius: 16px;
+    border: 2px solid var(--border);
+    padding: 24px;
+    position: relative;
+  }
+
+  .mobile-card.recommended {
+    border-color: var(--navy);
+  }
+
+  .recommended-badge {
+    position: absolute;
+    top: -1px; right: 20px;
+    background: var(--navy);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 0 0 8px 8px;
+  }
+
+  .mobile-icon { font-size: 32px; margin-bottom: 12px; }
+
+  .mobile-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--navy);
+    margin-bottom: 4px;
+  }
+
+  .mobile-subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  .mobile-pros {
+    list-style: none;
+  }
+
+  .mobile-pros li {
+    font-size: 12px;
+    padding: 4px 0;
+    padding-left: 18px;
+    position: relative;
+    color: var(--text);
+  }
+
+  .mobile-pros li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--green);
+    font-weight: 700;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    margin-top: auto;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-brand {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  .footer-brand span { color: var(--muted); font-weight: 400; }
+
+  .footer-page {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── PAGE BREAK ── */
+  table {
+    page-break-inside: avoid;
+  }
+  .roles-table, .needs-table {
+    page-break-inside: avoid;
+  }
+  .features-grid {
+    page-break-inside: avoid;
+  }
+  .checklist-section {
+    page-break-inside: avoid;
+  }
+  .step-card {
+    page-break-inside: avoid;
+  }
+  .mobile-card {
+    page-break-inside: avoid;
+  }
+  .credential-card {
+    page-break-inside: avoid;
+  }
+  .credentials-grid {
+    page-break-inside: avoid;
+  }
+  .next-steps {
+    page-break-inside: avoid;
+  }
+  .mobile-grid {
+    page-break-inside: avoid;
+  }
+  @media print {
+    table { page-break-inside: avoid; }
+  }
+
+  /* ── INFO BOX ── */
+  .info-box {
+    background: var(--blue-light);
+    border-left: 4px solid var(--navy);
+    border-radius: 0 10px 10px 0;
+    padding: 14px 20px;
+    margin-bottom: 24px;
+    font-size: 12px;
+    color: var(--navy);
+  }
+
+  .info-box strong { font-weight: 700; }
+
+  /* ── UAT HEADER ── */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-header-logo {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--navy);
+    letter-spacing: 0.02em;
+  }
+
+  .page-header-tag {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     COVER PAGE
+══════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-top">
+    <div class="logo-bar">
+      <div class="logo-icon">⚙️</div>
+      <div>
+        <div class="logo-text">BADEMA</div>
+        <div class="logo-sub">Equipos Industriales</div>
+      </div>
+    </div>
+
+    <div class="cover-badge">UAT · Pruebas de Aceptación</div>
+
+    <div class="cover-title">
+      CRM de Cotizaciones<br><span>&amp; Seguimiento Comercial</span>
+    </div>
+
+    <div class="cover-subtitle">
+      Plataforma digital para que el equipo de ventas de Badema gestione cotizaciones, programe seguimientos y nunca pierda una oportunidad de cierre.
+    </div>
+
+    <div class="cover-stats">
+      <div class="cover-stat">
+        <div class="cover-stat-num">2</div>
+        <div class="cover-stat-label">Roles de usuario</div>
+      </div>
+      <div class="cover-stat">
+        <div class="cover-stat-num">5</div>
+        <div class="cover-stat-label">Módulos funcionales</div>
+      </div>
+      <div class="cover-stat">
+        <div class="cover-stat-num">4</div>
+        <div class="cover-stat-label">Frecuencias de seguimiento</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cover-bottom">
+    <div>
+      <div class="url-label" style="color:rgba(255,255,255,0.4); font-size:10px; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px;">URL de acceso</div>
+      <div class="cover-url"><strong>cotizaciones-badema.vercel.app</strong></div>
+    </div>
+    <div class="cover-date">
+      Versión 1.0 · Marzo 2026<br>
+      Entorno UAT / Pre-producción
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     PAGE 2 — ACCESO Y CREDENCIALES
+══════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-logo">BADEMA CRM</div>
+    <div class="page-header-tag">Acceso · Credenciales</div>
+  </div>
+
+  <div class="section-tag">Primeros pasos</div>
+  <div class="section-title">Cómo ingresar al sistema</div>
+  <div class="section-desc">Accedé desde cualquier navegador o celular. No requiere instalación previa.</div>
+
+  <div class="url-box" style="margin-bottom:28px;">
+    <div class="url-icon">🌐</div>
+    <div>
+      <div class="url-label">URL de acceso</div>
+      <div class="url-value">https://cotizaciones-badema.vercel.app</div>
+      <div class="url-note">Funciona en computadora, tablet y celular · No requiere instalación</div>
+    </div>
+  </div>
+
+  <div class="section-tag">Usuarios de prueba</div>
+  <div class="section-title" style="font-size:22px; margin-bottom:8px;">Credenciales para el UAT</div>
+  <div class="section-desc">Dos perfiles con distintos niveles de acceso para validar el comportamiento del sistema.</div>
+
+  <div class="credentials-grid">
+    <div class="credential-card admin">
+      <div class="credential-card-header">
+        <div class="cred-icon">👤</div>
+        <div>
+          <div class="cred-role">Administrador</div>
+          <div class="cred-role-sub">Acceso total al sistema</div>
+        </div>
+      </div>
+      <div class="credential-card-body">
+        <div class="cred-row">
+          <div class="cred-label">Email</div>
+          <div class="cred-value">admin@badema.com</div>
+        </div>
+        <div class="cred-row">
+          <div class="cred-label">Contraseña</div>
+          <div class="cred-value">admin123</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="credential-card vendedor">
+      <div class="credential-card-header">
+        <div class="cred-icon">🧑‍💼</div>
+        <div>
+          <div class="cred-role">Vendedor</div>
+          <div class="cred-role-sub">Acceso a sus cotizaciones</div>
+        </div>
+      </div>
+      <div class="credential-card-body">
+        <div class="cred-row">
+          <div class="cred-label">Email</div>
+          <div class="cred-value">vendedor19531@badema.com</div>
+        </div>
+        <div class="cred-row">
+          <div class="cred-label">Contraseña</div>
+          <div class="cred-value">vendedor19531</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <strong>Nota:</strong> Los datos cargados son simulados para esta etapa de pruebas. Una vez aprobado el UAT, se conectará con la cuenta real de Contabilium de Badema y los datos reflejarán las cotizaciones reales.
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section-tag">Diferencias por rol</div>
+
+  <table class="roles-table">
+    <thead>
+      <tr>
+        <th>Funcionalidad</th>
+        <th class="admin-col">Administrador</th>
+        <th class="vend-col">Vendedor</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Ver todas las cotizaciones</td>
+        <td><span class="check">✓</span></td>
+        <td><span class="cross">✗</span> Solo las propias</td>
+      </tr>
+      <tr>
+        <td>Dashboard global</td>
+        <td><span class="check">✓</span></td>
+        <td><span class="cross">✗</span> Solo sus métricas</td>
+      </tr>
+      <tr>
+        <td>Sincronizar desde Contabilium</td>
+        <td><span class="check">✓</span></td>
+        <td><span class="cross">✗</span></td>
+      </tr>
+      <tr>
+        <td>Editar % de cierre y seguimiento</td>
+        <td><span class="check">✓</span></td>
+        <td><span class="check">✓</span></td>
+      </tr>
+      <tr>
+        <td>Contactar cliente (WhatsApp / Email)</td>
+        <td><span class="check">✓</span></td>
+        <td><span class="check">✓</span></td>
+      </tr>
+      <tr>
+        <td>Alertas de seguimiento pendiente</td>
+        <td><span class="check">✓</span></td>
+        <td><span class="check">✓</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <div class="footer-brand">BADEMA CRM <span>· UAT Marzo 2026</span></div>
+    <div class="footer-page">2 / 4</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     PAGE 3 — FUNCIONALIDADES
+══════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-logo">BADEMA CRM</div>
+    <div class="page-header-tag">Módulos funcionales</div>
+  </div>
+
+  <div class="section-tag">Funcionalidades del sistema</div>
+  <div class="section-title">Qué puede hacer el sistema</div>
+  <div class="section-desc">Cinco módulos diseñados para que el equipo de ventas trabaje de forma ordenada y sin perder oportunidades.</div>
+
+  <div class="features-grid">
+
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Dashboard de Ventas</div>
+      <div class="feature-desc">Panel principal con visibilidad completa sobre el estado del pipeline comercial.</div>
+      <ul class="feature-bullets">
+        <li>Contadores por estado: Borrador, Pendiente, Enviada, Aprobada, Rechazada</li>
+        <li>Calendario de seguimientos (próximos 10 días hábiles)</li>
+        <li>Alertas automáticas de seguimientos vencidos hoy</li>
+        <li>Vista filtrada por rol (Admin ve todo, Vendedor ve lo suyo)</li>
+      </ul>
+    </div>
+
+    <div class="feature-card accent">
+      <div class="feature-icon">📋</div>
+      <div class="feature-title">Gestión de Cotizaciones</div>
+      <div class="feature-desc">Lista completa y editable de todas las cotizaciones sincronizadas desde Contabilium.</div>
+      <ul class="feature-bullets">
+        <li>Filtros por estado con un clic</li>
+        <li>Edición inline de % de cierre (0–100%)</li>
+        <li>Configuración de frecuencia de seguimiento</li>
+        <li>Cálculo automático de próxima fecha de contacto</li>
+      </ul>
+    </div>
+
+    <div class="feature-card green">
+      <div class="feature-icon">📞</div>
+      <div class="feature-title">Contacto Directo con el Cliente</div>
+      <div class="feature-desc">Desde el detalle de cada cotización, el vendedor puede contactar al cliente en segundos.</div>
+      <ul class="feature-bullets">
+        <li>WhatsApp con mensaje pre-cargado con datos de la cotización</li>
+        <li>Email con asunto y cuerpo pre-completados</li>
+        <li>Datos del cliente: nombre, teléfono, email, dirección</li>
+        <li>Número de cotización, fecha e importe visible</li>
+      </ul>
+    </div>
+
+    <div class="feature-card orange">
+      <div class="feature-icon">🔔</div>
+      <div class="feature-title">Alertas de Seguimiento</div>
+      <div class="feature-desc">El sistema recuerda automáticamente cuándo hay que volver a contactar a cada cliente.</div>
+      <ul class="feature-bullets">
+        <li>Frecuencias configurables: 3, 7, 15 o 30 días</li>
+        <li>Alerta visual al ingresar si hay seguimientos para hoy</li>
+        <li>Calendario semanal de próximas acciones</li>
+        <li>Preparado para notificaciones push en celular</li>
+      </ul>
+    </div>
+
+    <div class="feature-card" style="grid-column: 1 / -1;">
+      <div class="feature-icon">🔄</div>
+      <div class="feature-title">Sincronización con Contabilium <span style="font-size:11px; color:var(--muted); font-weight:500;">(solo Admin)</span></div>
+      <div class="feature-desc">El Administrador puede sincronizar las cotizaciones desde Contabilium con un clic, manteniendo el CRM siempre actualizado.</div>
+      <ul class="feature-bullets" style="columns: 2; gap: 24px;">
+        <li>Crea y actualiza clientes automáticamente</li>
+        <li>Importa estado, importe, fecha y observaciones</li>
+        <li>Asocia cada cotización al vendedor correspondiente</li>
+        <li>Log de sincronización con resultados detallados</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <div class="footer-brand">BADEMA CRM <span>· UAT Marzo 2026</span></div>
+    <div class="footer-page">3 / 4</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     PAGE 4 — CHECKLIST + PRÓXIMOS PASOS
+══════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-logo">BADEMA CRM</div>
+    <div class="page-header-tag">Pruebas · Próximos pasos</div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div class="section-tag">Pruebas a realizar</div>
+  <div class="section-title" style="font-size:20px; margin-bottom:4px;">Checklist de aceptación</div>
+  <div class="section-desc" style="margin-bottom:14px; font-size:12px;">Marcá cada ítem a medida que lo probás.</div>
+
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:24px;">
+
+    <div style="background:var(--bg); border-radius:12px; padding:14px; page-break-inside:avoid;">
+      <div style="font-size:11px; font-weight:700; color:var(--navy); margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="background:var(--navy);color:white;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;">1</span> Login y acceso</div>
+      <ul style="list-style:none;">
+        <li style="font-size:11px; padding:3px 0 3px 14px; position:relative; border-bottom:1px solid var(--border);">☐ <span style="padding-left:4px;">Login funciona para Admin y Vendedor</span></li>
+        <li style="font-size:11px; padding:3px 0 3px 14px; position:relative; border-bottom:1px solid var(--border);">☐ <span style="padding-left:4px;">Sin credenciales no se accede</span></li>
+        <li style="font-size:11px; padding:3px 0 3px 14px; position:relative;">☐ <span style="padding-left:4px;">Cierre de sesión funciona</span></li>
+      </ul>
+    </div>
+
+    <div style="background:var(--bg); border-radius:12px; padding:14px; page-break-inside:avoid;">
+      <div style="font-size:11px; font-weight:700; color:var(--navy); margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="background:var(--navy);color:white;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;">2</span> Dashboard</div>
+      <ul style="list-style:none;">
+        <li style="font-size:11px; padding:3px 0 3px 14px; position:relative; border-bottom:1px solid var(--border);">☐ <span style="padding-left:4px;">Contadores por estado correctos</span></li>
+        <li style="font-size:11px; padding:3px 0 3px 14px; position:relative; border-bottom:1px solid var(--border);">☐ <span style="padding-left:4px;">Calendario de seguimientos visible</span></li>
+        <li style="font-size:11px; padding:3px 0 3px 14px; position:relative;">☐ <span style="padding-left:4px;">Admin ve todo, Vendedor lo suyo</span></li>
+      </ul>
+    </div>
+
+    <div style="background:var(--bg); border-radius:12px; padding:14px; page-break-inside:avoid;">
+      <div style="font-size:11px; font-weight:700; color:var(--navy); margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="background:var(--navy);color:white;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;">3</span> Cotizaciones</div>
+      <ul style="list-style:none;">
+        <li style="font-size:11px; padding:3px 0 3px 14px; position:relative; border-bottom:1px solid var(--border);">☐ <span style="padding-left:4px;">Filtros por estado funcionan</span></li>
+        <li style="font-size:11px; padding:3px 0 3px 14px; position:relative; border-bottom:1px solid var(--border);">☐ <span style="padding-left:4px;">Se edita % de cierre y seguimiento</span></li>
+        <li style="font-size:11px; padding:3px 0 3px 14px; position:relative;">☐ <span style="padding-left:4px;">Sincronizar visible solo para Admin</span></li>
+      </ul>
+    </div>
+
+    <div style="background:var(--bg); border-radius:12px; padding:14px; page-break-inside:avoid;">
+      <div style="font-size:11px; font-weight:700; color:var(--navy); margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="background:var(--navy);color:white;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;">4</span> Detalle y contacto</div>
+      <ul style="list-style:none;">
+        <li style="font-size:11px; padding:3px 0 3px 14px; position:relative; border-bottom:1px solid var(--border);">☐ <span style="padding-left:4px;">Datos del cliente e importe visibles</span></li>
+        <li style="font-size:11px; padding:3px 0 3px 14px; position:relative; border-bottom:1px solid var(--border);">☐ <span style="padding-left:4px;">WhatsApp abre con mensaje correcto</span></li>
+        <li style="font-size:11px; padding:3px 0 3px 14px; position:relative;">☐ <span style="padding-left:4px;">Email abre con asunto pre-cargado</span></li>
+      </ul>
+    </div>
+
+    <div style="background:var(--bg); border-radius:12px; padding:14px; grid-column:span 2; page-break-inside:avoid;">
+      <div style="font-size:11px; font-weight:700; color:var(--navy); margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="background:var(--navy);color:white;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;">5</span> Preguntas clave para validar</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0;">
+        <ul style="list-style:none;">
+          <li style="font-size:11px; padding:3px 0 3px 14px; border-bottom:1px solid var(--border);">☐ <span style="padding-left:4px;">¿Los estados reflejan el proceso real?</span></li>
+          <li style="font-size:11px; padding:3px 0 3px 14px;">☐ <span style="padding-left:4px;">¿Las frecuencias de seguimiento son suficientes?</span></li>
+        </ul>
+        <ul style="list-style:none; padding-left:12px; border-left:1px solid var(--border);">
+          <li style="font-size:11px; padding:3px 0 3px 14px; border-bottom:1px solid var(--border);">☐ <span style="padding-left:4px;">¿La separación Admin/Vendedor es correcta?</span></li>
+          <li style="font-size:11px; padding:3px 0 3px 14px;">☐ <span style="padding-left:4px;">¿Qué información falta en el dashboard?</span></li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- PRÓXIMOS PASOS -->
+  <div class="section-tag">Hoja de ruta</div>
+  <div class="section-title" style="font-size:20px; margin-bottom:4px;">Próximos pasos</div>
+  <div class="section-desc" style="margin-bottom:14px; font-size:12px;">Lo que viene después de aprobar el UAT.</div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:16px;">
+
+    <div style="border-radius:12px; overflow:hidden; border:1px solid var(--border); page-break-inside:avoid;">
+      <div style="background:var(--navy); padding:12px 16px; display:flex; align-items:center; gap:10px;">
+        <span style="font-size:18px; font-weight:900; color:rgba(255,255,255,0.25);">01</span>
+        <div>
+          <div style="font-size:9px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em;">Integración</div>
+          <div style="font-size:12px; font-weight:700; color:white;">API de Contabilium</div>
+        </div>
+      </div>
+      <div style="padding:12px 16px; font-size:11px; color:var(--muted); line-height:1.5;">Conectar con datos reales de Badema usando las credenciales de la cuenta de Contabilium.</div>
+      <div style="padding:0 16px 12px; display:flex; flex-wrap:wrap; gap:5px;">
+        <span style="font-size:10px; font-weight:600; padding:3px 8px; border-radius:20px; background:var(--blue-light); color:var(--navy);">Client ID</span>
+        <span style="font-size:10px; font-weight:600; padding:3px 8px; border-radius:20px; background:var(--blue-light); color:var(--navy);">Client Secret</span>
+        <span style="font-size:10px; font-weight:600; padding:3px 8px; border-radius:20px; background:var(--blue-light); color:var(--navy);">IDs vendedores</span>
+      </div>
+    </div>
+
+    <div style="border-radius:12px; overflow:hidden; border:1px solid var(--border); page-break-inside:avoid;">
+      <div style="background:var(--blue-accent); padding:12px 16px; display:flex; align-items:center; gap:10px;">
+        <span style="font-size:18px; font-weight:900; color:rgba(255,255,255,0.25);">02</span>
+        <div>
+          <div style="font-size:9px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em;">App móvil</div>
+          <div style="font-size:12px; font-weight:700; color:white;">Celular del equipo</div>
+        </div>
+      </div>
+      <div style="padding:12px 16px; font-size:11px; color:var(--muted); line-height:1.5;">PWA instalable desde el navegador (recomendado) o app nativa en App Store y Google Play.</div>
+      <div style="padding:0 16px 12px; display:flex; flex-wrap:wrap; gap:5px;">
+        <span style="font-size:10px; font-weight:600; padding:3px 8px; border-radius:20px; background:#e6f0fa; color:var(--blue-accent);">📲 PWA · inmediata</span>
+        <span style="font-size:10px; font-weight:600; padding:3px 8px; border-radius:20px; background:#e6f0fa; color:var(--blue-accent);">🏪 App nativa</span>
+      </div>
+    </div>
+
+    <div style="border-radius:12px; overflow:hidden; border:1px solid var(--border); page-break-inside:avoid;">
+      <div style="background:var(--green); padding:12px 16px; display:flex; align-items:center; gap:10px;">
+        <span style="font-size:18px; font-weight:900; color:rgba(255,255,255,0.25);">03</span>
+        <div>
+          <div style="font-size:9px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em;">Notificaciones</div>
+          <div style="font-size:12px; font-weight:700; color:white;">Alertas automáticas</div>
+        </div>
+      </div>
+      <div style="padding:12px 16px; font-size:11px; color:var(--muted); line-height:1.5;">Push notifications cada mañana con los seguimientos del día, sin abrir la app.</div>
+      <div style="padding:0 16px 12px; display:flex; flex-wrap:wrap; gap:5px;">
+        <span style="font-size:10px; font-weight:600; padding:3px 8px; border-radius:20px; background:var(--green-light); color:var(--green);">Push por vendedor</span>
+        <span style="font-size:10px; font-weight:600; padding:3px 8px; border-radius:20px; background:var(--green-light); color:var(--green);">Cron diario</span>
+      </div>
+    </div>
+
+  </div>
+
+  <table class="needs-table">
+    <thead>
+      <tr>
+        <th>Acción requerida</th>
+        <th>Responsable</th>
+        <th>Detalle</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Credenciales API Contabilium</td>
+        <td>Badema</td>
+        <td>Client ID y Client Secret de la cuenta de Badema</td>
+      </tr>
+      <tr>
+        <td>IDs de vendedores en Contabilium</td>
+        <td>Badema</td>
+        <td>Número identificador de cada vendedor en el sistema</td>
+      </tr>
+      <tr>
+        <td>Confirmación UAT</td>
+        <td>Badema</td>
+        <td>Aprobación o lista de ajustes antes del go-live</td>
+      </tr>
+      <tr>
+        <td>Decisión app móvil</td>
+        <td>Badema</td>
+        <td>PWA (disponible hoy) o app nativa (desarrollo adicional)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <div class="footer-brand">BADEMA CRM <span>· UAT Marzo 2026</span></div>
+    <div class="footer-page">4 / 4</div>
+  </div>
+</div>
+
+</body>
+</html>

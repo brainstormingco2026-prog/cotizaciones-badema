@@ -6,7 +6,7 @@
 |---------|-------|
 | Inicio del proyecto | 2026-03-05 |
 | Última actualización | 2026-03-24 |
-| **Total horas** | **~30 hs** |
+| **Total horas** | **~31 hs** |
 
 ---
 
@@ -19,7 +19,8 @@
 | 2026-03-20 | 5 | Versión 1 completa, configuración Railway + PostgreSQL, fixes TypeScript y build |
 | 2026-03-21 | 3 | Deploy Vercel, fixes prisma migrate/generate, debugging login |
 | 2026-03-22 | 2 | Fix seed-admin, documentación UAT |
-| **TOTAL** | **30** | |
+| 2026-03-24 | 1 | chore: reemplazar cron por git hook post-commit para log de horas;chore: agregar log de horas y script de registro automático diario |
+| **TOTAL** | **31** | |
 
 ---
 

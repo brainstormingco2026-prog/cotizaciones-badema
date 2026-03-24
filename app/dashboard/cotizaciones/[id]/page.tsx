@@ -10,6 +10,13 @@ function getAuthHeader(): Record<string, string> {
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
+const MOTIVO_OPTIONS = [
+  { value: "PRECIO", label: "Precio" },
+  { value: "PLAZO_EXCESIVO", label: "Plazo excesivo" },
+  { value: "BAJA", label: "Baja" },
+  { value: "COMPETENCIA", label: "Competencia" },
+];
+
 type QuotationDetail = {
   id: string;
   externalId: string;
@@ -25,6 +32,7 @@ type QuotationDetail = {
   importeTotalNeto: string | null;
   observaciones: string | null;
   idVendedor: string | null;
+  motivoRechazo: string | null;
   client: { name: string; email: string | null; phone: string | null; address: string | null };
   assignedTo: { name: string; email: string } | null;
 };
@@ -43,6 +51,7 @@ export default function CotizacionDetallePage() {
   const [saving, setSaving] = useState(false);
   const [successPercent, setSuccessPercent] = useState(50);
   const [followUpFreq, setFollowUpFreq] = useState<string | "">("");
+  const [motivoRechazo, setMotivoRechazo] = useState<string | "">("");
   const [copiedEmail, setCopiedEmail] = useState(false);
   const copyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -54,6 +63,7 @@ export default function CotizacionDetallePage() {
           setQ(data);
           setSuccessPercent(data.successPercent ?? 50);
           setFollowUpFreq(data.followUpFreq ?? "");
+          setMotivoRechazo(data.motivoRechazo ?? "");
         }
       })
       .finally(() => setLoading(false));
@@ -76,6 +86,7 @@ export default function CotizacionDetallePage() {
         body: JSON.stringify({
           successPercent,
           followUpFreq: followUpFreq || null,
+          ...(q.state === "rechazada" ? { motivoRechazo: motivoRechazo || null } : {}),
         }),
       });
       if (res.ok) {
@@ -181,39 +192,62 @@ export default function CotizacionDetallePage() {
             <dd>{new Date(q.updatedAt).toLocaleString("es-AR")}</dd>
           </dl>
         </div>
-        <div className="cotizacion-detail-section">
-          <h3>Seguimiento</h3>
-          <label>
-            Posibilidad de cierre (%)
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={successPercent}
-              onChange={(e) => setSuccessPercent(Number(e.target.value))}
-              className="input-percent"
-            />
-          </label>
-          <label>
-            Frecuencia de seguimiento
-            <select
-              value={followUpFreq}
-              onChange={(e) => setFollowUpFreq(e.target.value)}
-              className="input-freq"
-            >
-              <option value="">Sin frecuencia</option>
-              {FREQ_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </label>
-          {q.nextFollowUpAt && (
-            <p>Próximo seguimiento: {new Date(q.nextFollowUpAt).toLocaleDateString("es-AR")}</p>
-          )}
-          <button type="button" onClick={handleSave} disabled={saving} className="btn-save">
-            {saving ? "Guardando…" : "Guardar"}
-          </button>
-        </div>
+        {q.state === "rechazada" && (
+          <div className="cotizacion-detail-section">
+            <h3>Motivo de rechazo</h3>
+            <label>
+              Motivo
+              <select
+                value={motivoRechazo}
+                onChange={(e) => setMotivoRechazo(e.target.value)}
+                className="input-freq"
+              >
+                <option value="">Sin motivo</option>
+                {MOTIVO_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </label>
+            <button type="button" onClick={handleSave} disabled={saving} className="btn-save">
+              {saving ? "Guardando…" : "Guardar"}
+            </button>
+          </div>
+        )}
+        {q.state !== "rechazada" && (
+          <div className="cotizacion-detail-section">
+            <h3>Seguimiento</h3>
+            <label>
+              Posibilidad de cierre (%)
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={successPercent}
+                onChange={(e) => setSuccessPercent(Number(e.target.value))}
+                className="input-percent"
+              />
+            </label>
+            <label>
+              Frecuencia de seguimiento
+              <select
+                value={followUpFreq}
+                onChange={(e) => setFollowUpFreq(e.target.value)}
+                className="input-freq"
+              >
+                <option value="">Sin frecuencia</option>
+                {FREQ_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </label>
+            {q.nextFollowUpAt && (
+              <p>Próximo seguimiento: {new Date(q.nextFollowUpAt).toLocaleDateString("es-AR")}</p>
+            )}
+            <button type="button" onClick={handleSave} disabled={saving} className="btn-save">
+              {saving ? "Guardando…" : "Guardar"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

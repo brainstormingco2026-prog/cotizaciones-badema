@@ -61,6 +61,7 @@ model Quotation {
   importeTotalNeto String?   // ej. 2.000,00
   observaciones    String?
   idVendedor       String?   // ID del vendedor en Contabilium
+  motivoRechazo    String?   // PRECIO | PLAZO_EXCESIVO | BAJA | COMPETENCIA
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 

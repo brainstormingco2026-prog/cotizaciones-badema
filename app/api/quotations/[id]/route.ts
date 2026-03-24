@@ -7,11 +7,13 @@ import { computeNextFollowUp } from "@/lib/contabilium/sync-quotations";
 import { enrichIdVendedorFromRawData } from "@/lib/quotations-enrich";
 
 const followUpFreqEnum = ["DAYS_3", "DAYS_7", "DAYS_15", "DAYS_30"] as const;
+const motivoRechazoEnum = ["PRECIO", "PLAZO_EXCESIVO", "BAJA", "COMPETENCIA"] as const;
 
 const patchSchema = z.object({
   assignedToId: z.string().cuid().nullable().optional(),
   successPercent: z.number().min(0).max(100).optional(),
   followUpFreq: z.enum(followUpFreqEnum).nullable().optional(),
+  motivoRechazo: z.enum(motivoRechazoEnum).nullable().optional(),
 });
 
 export async function GET(

@@ -9,6 +9,13 @@ function getAuthHeader(): Record<string, string> {
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
+const MOTIVO_LABELS: Record<string, string> = {
+  PRECIO: "Precio",
+  PLAZO_EXCESIVO: "Plazo excesivo",
+  BAJA: "Baja",
+  COMPETENCIA: "Competencia",
+};
+
 type Quotation = {
   id: string;
   externalId: string;
@@ -24,6 +31,7 @@ type Quotation = {
   importeTotalNeto: string | null;
   observaciones: string | null;
   idVendedor: string | null;
+  motivoRechazo: string | null;
   client: { id: string; name: string; email: string | null; phone: string | null; address: string | null };
   assignedTo: { id: string; name: string; email: string } | null;
 };
@@ -43,7 +51,7 @@ const STATE_ORDER: Record<string, number> = {
   rechazada: 4,
 };
 
-type EditingCell = { id: string; field: "successPercent" | "followUpFreq" };
+type EditingCell = { id: string; field: "successPercent" | "followUpFreq" | "motivoRechazo" };
 
 export default function CotizacionesPage() {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
@@ -103,9 +111,12 @@ export default function CotizacionesPage() {
   const CLOSED_STATES = ["aceptada", "rechazada"];
 
   function startEdit(q: Quotation, field: EditingCell["field"]) {
-    if (CLOSED_STATES.includes(q.state)) return;
+    if (field !== "motivoRechazo" && CLOSED_STATES.includes(q.state)) return;
+    if (field === "motivoRechazo" && q.state !== "rechazada") return;
     setEditing({ id: q.id, field });
-    setEditValue(field === "successPercent" ? String(q.successPercent) : (q.followUpFreq ?? ""));
+    if (field === "successPercent") setEditValue(String(q.successPercent));
+    else if (field === "followUpFreq") setEditValue(q.followUpFreq ?? "");
+    else setEditValue(q.motivoRechazo ?? "");
     setTimeout(() => inputRef.current?.focus(), 0);
   }
 
@@ -114,7 +125,9 @@ export default function CotizacionesPage() {
     const body: Record<string, unknown> =
       editing.field === "successPercent"
         ? { successPercent: Math.min(100, Math.max(0, Number(editValue) || 0)) }
-        : { followUpFreq: editValue || null };
+        : editing.field === "followUpFreq"
+        ? { followUpFreq: editValue || null }
+        : { motivoRechazo: editValue || null };
 
     setEditing(null);
     const res = await fetch(`/api/quotations/${q.id}`, {
@@ -171,6 +184,7 @@ export default function CotizacionesPage() {
                 <th>Número</th>
                 <th>Importe neto</th>
                 <th>Estado</th>
+                <th>Motivo rechazo</th>
                 <th>Vendedor</th>
                 <th>Cliente</th>
                 <th>% Cierre</th>
@@ -191,6 +205,33 @@ export default function CotizacionesPage() {
                     <span className={`cotizacion-state state-${q.state}`}>
                       {q.state === "aceptada" ? "Aprobada" : q.state.charAt(0).toUpperCase() + q.state.slice(1)}
                     </span>
+                  </td>
+                  <td data-label="Motivo rechazo" className={q.state === "rechazada" ? "col-editable" : ""} onClick={() => q.state === "rechazada" ? startEdit(q, "motivoRechazo") : undefined}>
+                    {q.state === "rechazada" ? (
+                      editing?.id === q.id && editing.field === "motivoRechazo" ? (
+                        <select
+                          ref={inputRef as React.RefObject<HTMLSelectElement>}
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => saveEdit(q)}
+                          onKeyDown={(e) => { if (e.key === "Escape") setEditing(null); }}
+                          className="inline-select"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <option value="">Sin motivo</option>
+                          <option value="PRECIO">Precio</option>
+                          <option value="PLAZO_EXCESIVO">Plazo excesivo</option>
+                          <option value="BAJA">Baja</option>
+                          <option value="COMPETENCIA">Competencia</option>
+                        </select>
+                      ) : (
+                        <span className={`motivo-rechazo-tag${q.motivoRechazo ? "" : " motivo-vacio"}`}>
+                          {q.motivoRechazo ? MOTIVO_LABELS[q.motivoRechazo] ?? q.motivoRechazo : "Sin motivo"}
+                        </span>
+                      )
+                    ) : (
+                      <span className="muted">—</span>
+                    )}
                   </td>
                   <td data-label="Vendedor" className="col-hide-mobile">{q.idVendedor ?? "—"}</td>
                   <td data-label="Cliente">{q.client.name}</td>

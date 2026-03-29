@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 function getAuthHeader(): Record<string, string> {
   if (typeof window === "undefined") return {};
@@ -38,6 +39,14 @@ type GoalProgress = {
   onTrack: boolean | null;
 };
 
+type VendorQuotation = {
+  id: string;
+  externalId: string;
+  state: string;
+  importeTotalNeto: string | null;
+  client: { name: string };
+};
+
 
 const STATE_LABELS: Record<string, string> = {
   borrador: "Borrador",
@@ -64,7 +73,16 @@ function getMondayOfCurrentWeek(): Date {
 }
 
 
+const STATE_LABELS_MODAL: Record<string, string> = {
+  borrador: "Borrador",
+  pendiente: "Pendiente",
+  enviada: "Enviada",
+  aceptada: "Aprobada",
+  rechazada: "Rechazada",
+};
+
 export default function PanelControlPage() {
+  const router = useRouter();
   const [byState, setByState] = useState<StateWidget[]>([]);
   const [weekFollowUps, setWeekFollowUps] = useState<FollowUp[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,6 +90,9 @@ export default function PanelControlPage() {
   const [goalMonth, setGoalMonth] = useState(0);
   const [goalYear, setGoalYear] = useState(new Date().getFullYear());
   const [isAdmin, setIsAdmin] = useState(false);
+  const [vendorModal, setVendorModal] = useState<{ userId: string; name: string } | null>(null);
+  const [vendorQuotations, setVendorQuotations] = useState<VendorQuotation[]>([]);
+  const [vendorLoading, setVendorLoading] = useState(false);
 
   function loadGoals() {
     fetch("/api/goals", { headers: getAuthHeader() })
@@ -81,6 +102,16 @@ export default function PanelControlPage() {
         setGoalMonth(d.month ?? 0);
         setGoalYear(d.year ?? new Date().getFullYear());
       });
+  }
+
+  function openVendorModal(userId: string, name: string) {
+    setVendorModal({ userId, name });
+    setVendorQuotations([]);
+    setVendorLoading(true);
+    fetch(`/api/quotations?userId=${encodeURIComponent(userId)}`, { headers: getAuthHeader() })
+      .then((r) => (r.ok ? r.json() : { quotations: [] }))
+      .then((d) => setVendorQuotations(d.quotations ?? []))
+      .finally(() => setVendorLoading(false));
   }
 
   useEffect(() => {
@@ -120,15 +151,66 @@ export default function PanelControlPage() {
 
   const today = new Date();
 
+  const vendorStateCounts = STATE_ORDER.reduce((acc, state) => {
+    acc[state] = vendorQuotations.filter((q) => q.state === state).length;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
     <div className="dashboard-cards">
+      {/* Modal resumen vendedor */}
+      {vendorModal && (
+        <div className="vendor-modal-overlay" onClick={() => setVendorModal(null)}>
+          <div className="vendor-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="vendor-modal-header">
+              <h3>{vendorModal.name}</h3>
+              <button type="button" className="vendor-modal-close" onClick={() => setVendorModal(null)}>✕</button>
+            </div>
+            {vendorLoading ? (
+              <p className="muted vendor-modal-loading">Cargando…</p>
+            ) : (
+              <div className="vendor-modal-body">
+                <div className="vendor-modal-states">
+                  {STATE_ORDER.map((state) => (
+                    <button
+                      key={state}
+                      type="button"
+                      className="vendor-modal-state-chip"
+                      onClick={() => { setVendorModal(null); router.push(`/dashboard/cotizaciones?estado=${state}`); }}
+                    >
+                      <span className={`cotizacion-state state-${state}`}>{STATE_LABELS_MODAL[state]}</span>
+                      <span className="vendor-modal-state-count">{vendorStateCounts[state] ?? 0}</span>
+                    </button>
+                  ))}
+                </div>
+                {vendorQuotations.length === 0 ? (
+                  <p className="muted">Sin cotizaciones.</p>
+                ) : (
+                  <ul className="vendor-modal-list">
+                    {vendorQuotations.slice(0, 10).map((q) => (
+                      <li key={q.id}>
+                        <Link href={`/dashboard/cotizaciones/${q.id}`} onClick={() => setVendorModal(null)} className="vendor-modal-item">
+                          <span className={`cotizacion-state state-${q.state}`}>{STATE_LABELS_MODAL[q.state] ?? q.state}</span>
+                          <span className="vendor-modal-item-client">{q.client.name}</span>
+                          {q.importeTotalNeto && <span className="vendor-modal-item-amount">${q.importeTotalNeto}</span>}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {loading && <p className="muted">Cargando métricas…</p>}
       {!loading && (
         <>
           {/* Widgets por estado */}
           <div className="estado-widgets">
             {[...byState].sort((a, b) => STATE_ORDER.indexOf(a.state) - STATE_ORDER.indexOf(b.state)).map((w) => (
-              <div key={w.state} className={`estado-widget estado-widget-${w.state}`}>
+              <Link key={w.state} href={`/dashboard/cotizaciones?estado=${w.state}`} className={`estado-widget estado-widget-${w.state}`}>
                 <span className={`estado-widget-label cotizacion-state state-${w.state}`}>
                   {STATE_LABELS[w.state] ?? w.state}
                 </span>
@@ -138,7 +220,7 @@ export default function PanelControlPage() {
                 </span>
                 <span className="estado-widget-total">$ {w.totalNeto}</span>
                 <span className="estado-widget-total-label">importe neto total</span>
-              </div>
+              </Link>
             ))}
           </div>
 
@@ -152,12 +234,14 @@ export default function PanelControlPage() {
               </div>
               <div className="objetivos-grid">
                 {goalProgress.map((g) => (
-                  <div
+                  <button
                     key={g.userId}
-                    className={`objetivo-card ${
+                    type="button"
+                    className={`objetivo-card objetivo-card-btn ${
                       g.onTrack === null ? "objetivo-sin-meta" :
                       g.onTrack ? "objetivo-verde" : "objetivo-rojo"
                     }`}
+                    onClick={() => openVendorModal(g.userId, g.name)}
                   >
                     <div className="objetivo-nombre">{g.name}</div>
                     {g.percent !== null ? (
@@ -176,7 +260,7 @@ export default function PanelControlPage() {
                     ) : (
                       <div className="objetivo-sin-objetivo">Sin objetivo configurado</div>
                     )}
-                  </div>
+                  </button>
                 ))}
                 {goalProgress.length === 0 && isAdmin && (
                   <p className="objetivo-empty">Sin objetivos configurados para este año.</p>

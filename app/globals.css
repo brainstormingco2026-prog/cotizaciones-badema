@@ -331,6 +331,14 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 0.25rem;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.estado-widget:hover {
+  box-shadow: 0 4px 12px rgba(30,58,95,0.12);
+  border-color: var(--badema-primary);
 }
 .estado-widget-label {
   margin-bottom: 0.5rem;
@@ -1095,6 +1103,16 @@
   max-width: 220px;
   border: 2px solid transparent;
 }
+.objetivo-card-btn {
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: box-shadow 0.15s, transform 0.1s;
+}
+.objetivo-card-btn:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  transform: translateY(-1px);
+}
 .objetivo-verde {
   background: #f0fdf4;
   border-color: #16a34a;
@@ -1407,4 +1425,178 @@
   border-color: var(--badema-success);
   color: var(--badema-success);
   background: #f0fdf4;
+}
+
+/* ── Modal resumen vendedor ── */
+.vendor-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.vendor-modal {
+  background: var(--badema-white);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  display: flex;
+  flex-direction: column;
+}
+.vendor-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--badema-border);
+  position: sticky;
+  top: 0;
+  background: var(--badema-white);
+  border-radius: 14px 14px 0 0;
+}
+.vendor-modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--badema-primary);
+}
+.vendor-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--badema-text-muted);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+.vendor-modal-close:hover { background: var(--badema-bg-light); }
+.vendor-modal-loading {
+  padding: 1.5rem;
+}
+.vendor-modal-body {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.vendor-modal-states {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.vendor-modal-state-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--badema-bg-light);
+  border: 1px solid var(--badema-border);
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  transition: background 0.12s;
+}
+.vendor-modal-state-chip:hover { background: var(--badema-primary-light); border-color: var(--badema-primary); }
+.vendor-modal-state-count {
+  font-weight: 700;
+  color: var(--badema-primary);
+  font-size: 0.9rem;
+}
+.vendor-modal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.vendor-modal-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--badema-border);
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--badema-text);
+  font-size: 0.88rem;
+  transition: background 0.12s;
+}
+.vendor-modal-item:hover { background: var(--badema-bg-light); }
+.vendor-modal-item-client {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vendor-modal-item-amount {
+  font-weight: 600;
+  color: var(--badema-primary);
+  white-space: nowrap;
+  font-size: 0.82rem;
+}
+
+/* ── Mobile: tabla vendedores → tarjetas ── */
+@media (max-width: 768px) {
+  .admin-vendedores {
+    padding: 1rem 0.75rem;
+  }
+  .admin-section {
+    padding: 1rem;
+  }
+  .admin-form-row {
+    grid-template-columns: 1fr;
+  }
+  .admin-table thead {
+    display: none;
+  }
+  .admin-table,
+  .admin-table tbody {
+    display: block;
+    width: 100%;
+  }
+  .admin-table tr {
+    display: block;
+    border: 1px solid var(--badema-border);
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+    background: var(--badema-white);
+    overflow: hidden;
+  }
+  .admin-table td {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.75rem;
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.875rem;
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .admin-table td:last-child { border-bottom: none; }
+  .admin-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--badema-text-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex: 0 0 38%;
+    white-space: nowrap;
+  }
+  .admin-table td > * {
+    flex: 1;
+    min-width: 0;
+  }
+  .goals-table .goal-input {
+    width: 100%;
+  }
 }

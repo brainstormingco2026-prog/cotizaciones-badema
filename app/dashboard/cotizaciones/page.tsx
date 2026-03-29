@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 function getAuthHeader(): Record<string, string> {
   if (typeof window === "undefined") return {};
@@ -54,9 +55,10 @@ const STATE_ORDER: Record<string, number> = {
 type EditingCell = { id: string; field: "successPercent" | "followUpFreq" | "motivoRechazo" };
 
 export default function CotizacionesPage() {
+  const searchParams = useSearchParams();
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>("");
+  const [filter, setFilter] = useState<string>(searchParams.get("estado") ?? "");
   const [user, setUser] = useState<{ role: string } | null>(null);
   const [syncResult, setSyncResult] = useState<{ created: number; updated: number; mock?: boolean } | null>(null);
   const [syncing, setSyncing] = useState(false);

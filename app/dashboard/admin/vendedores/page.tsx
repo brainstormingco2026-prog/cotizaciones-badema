@@ -157,10 +157,10 @@ export default function VendedoresAdminPage() {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id}>
-                  <td>{row.name}</td>
-                  <td>{row.email}</td>
-                  <td>{row.contabiliumId ?? <span className="muted">—</span>}</td>
-                  <td>
+                  <td data-label="Nombre">{row.name}</td>
+                  <td data-label="Email">{row.email}</td>
+                  <td data-label="ID Contabilium">{row.contabiliumId ?? <span className="muted">—</span>}</td>
+                  <td data-label="Objetivo ($)">
                     <input
                       className="goal-input"
                       type="number"
@@ -173,7 +173,7 @@ export default function VendedoresAdminPage() {
                     />
                     {row.error && <span className="goal-inline-error">{row.error}</span>}
                   </td>
-                  <td>
+                  <td data-label="">
                     <button
                       type="button"
                       className={`goal-save-btn ${row.saved ? "goal-save-btn-ok" : ""}`}

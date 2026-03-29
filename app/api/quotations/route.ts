@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
   const { user } = auth;
   const state = req.nextUrl.searchParams.get("state");
   const assignedToMe = req.nextUrl.searchParams.get("mine") === "true";
+  const filterUserId = req.nextUrl.searchParams.get("userId");
 
   const where: Prisma.QuotationWhereInput = {};
   if (user.role === "VENDEDOR") {
@@ -20,6 +21,16 @@ export async function GET(req: NextRequest) {
       where.idVendedor = user.contabiliumId;
     } else {
       where.assignedToId = user.id;
+    }
+  } else if (user.role === "ADMIN" && filterUserId) {
+    const vendor = await prisma.user.findUnique({
+      where: { id: filterUserId },
+      select: { contabiliumId: true },
+    });
+    if (vendor?.contabiliumId) {
+      where.OR = [{ assignedToId: filterUserId }, { idVendedor: vendor.contabiliumId }];
+    } else {
+      where.assignedToId = filterUserId;
     }
   } else if (assignedToMe) {
     where.assignedToId = user.id;

@@ -931,8 +931,31 @@
   .estado-widgets {
     grid-template-columns: repeat(2, 1fr);
   }
-  .dashboard-header h1 {
-    font-size: 1rem;
+  .dashboard-header {
+    padding: 0.6rem 1rem;
+  }
+  .header-logo {
+    width: 120px;
+  }
+  .dashboard .user {
+    font-size: 0.78rem;
+  }
+  .dashboard-nav {
+    padding: 0 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .dashboard-nav::-webkit-scrollbar {
+    display: none;
+  }
+  .dashboard-nav-link {
+    white-space: nowrap;
+    font-size: 0.85rem;
+    padding: 0.75rem 0.9rem;
+  }
+  .dashboard-content {
+    padding: 1rem 0.75rem;
   }
 
   /* Tabla cotizaciones → tarjetas en mobile */

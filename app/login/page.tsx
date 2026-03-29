@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -41,8 +42,14 @@ export default function LoginPage() {
   return (
     <main className="login-page">
       <div className="login-card">
-        <h1>CRM Badema</h1>
-        <p className="subtitle">Seguimiento de cotizaciones</p>
+        <Image
+          src="/logo-badema.png"
+          alt="Badema"
+          width={220}
+          height={100}
+          className="login-logo"
+          priority
+        />
         <form onSubmit={handleSubmit}>
           <label>
             Email

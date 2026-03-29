@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 function getToken() {
   if (typeof window === "undefined") return null;
@@ -79,6 +80,7 @@ export default function DashboardLayout({
   const navItems = [
     { href: "/dashboard", label: "Panel de Control" },
     { href: "/dashboard/cotizaciones", label: "Cotizaciones" },
+    ...(user.role === "ADMIN" ? [{ href: "/dashboard/admin/vendedores", label: "Vendedores" }] : []),
   ];
 
   return (
@@ -105,7 +107,14 @@ export default function DashboardLayout({
       )}
       <header className="dashboard-header">
         <div className="dashboard-header-left">
-          <h1>Cotizaciones Badema</h1>
+          <Image
+            src="/logo-badema.png"
+            alt="Badema"
+            width={160}
+            height={72}
+            className="header-logo"
+            priority
+          />
           <p className="user">Hola, {user.name} · {user.role === "ADMIN" ? "Administrador" : "Vendedor"}</p>
         </div>
         <div className="dashboard-header-right">

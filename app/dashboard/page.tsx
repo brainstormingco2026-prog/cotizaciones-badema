@@ -9,6 +9,12 @@ function getAuthHeader(): Record<string, string> {
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
+function getUser(): { role: string } | null {
+  if (typeof window === "undefined") return null;
+  const u = localStorage.getItem("crm_user");
+  return u ? JSON.parse(u) : null;
+}
+
 type StateWidget = { state: string; count: number; totalNeto: string };
 
 type FollowUp = {
@@ -20,6 +26,18 @@ type FollowUp = {
   client: { name: string };
   assignedTo: { name: string } | null;
 };
+
+type GoalProgress = {
+  userId: string;
+  name: string;
+  monthlyTarget: number | null;
+  current: number;
+  currentFormatted: string;
+  targetFormatted: string | null;
+  percent: number | null;
+  onTrack: boolean | null;
+};
+
 
 const STATE_LABELS: Record<string, string> = {
   borrador: "Borrador",
@@ -33,6 +51,8 @@ const STATE_ORDER = ["borrador", "pendiente", "enviada", "aceptada", "rechazada"
 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
 
+const MES_LABELS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
 function getMondayOfCurrentWeek(): Date {
   const d = new Date();
   const day = d.getDay();
@@ -43,12 +63,31 @@ function getMondayOfCurrentWeek(): Date {
   return monday;
 }
 
+
 export default function PanelControlPage() {
   const [byState, setByState] = useState<StateWidget[]>([]);
   const [weekFollowUps, setWeekFollowUps] = useState<FollowUp[]>([]);
   const [loading, setLoading] = useState(true);
+  const [goalProgress, setGoalProgress] = useState<GoalProgress[]>([]);
+  const [goalMonth, setGoalMonth] = useState(0);
+  const [goalYear, setGoalYear] = useState(new Date().getFullYear());
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  function loadGoals() {
+    fetch("/api/goals", { headers: getAuthHeader() })
+      .then((r) => (r.ok ? r.json() : { progress: [] }))
+      .then((d) => {
+        setGoalProgress(d.progress ?? []);
+        setGoalMonth(d.month ?? 0);
+        setGoalYear(d.year ?? new Date().getFullYear());
+      });
+  }
 
   useEffect(() => {
+    const user = getUser();
+    const admin = user?.role === "ADMIN";
+    setIsAdmin(admin);
+
     fetch("/api/dashboard", { headers: getAuthHeader() })
       .then((r) => (r.ok ? r.json() : { byState: [], weekFollowUps: [] }))
       .then((d) => {
@@ -56,16 +95,16 @@ export default function PanelControlPage() {
         setWeekFollowUps(d.weekFollowUps ?? []);
       })
       .finally(() => setLoading(false));
+
+    loadGoals();
   }, []);
 
   const monday = getMondayOfCurrentWeek();
 
-  // Cada slot es un día hábil: semana 1 = offset 0-4, semana 2 = offset 7-11
   function weekdayOffset(slot: number): number {
     return Math.floor(slot / 5) * 7 + (slot % 5);
   }
 
-  // Agrupar follow-ups por día hábil (0=lun … 9=vie semana 2)
   const byDay: FollowUp[][] = Array.from({ length: 10 }, (_, i) => {
     const day = new Date(monday);
     day.setDate(monday.getDate() + weekdayOffset(i));
@@ -102,6 +141,49 @@ export default function PanelControlPage() {
               </div>
             ))}
           </div>
+
+          {/* Objetivos mensuales */}
+          {(goalProgress.length > 0 || isAdmin) && (
+            <div className="objetivos-section">
+              <div className="objetivos-header">
+                <h3 className="objetivos-titulo">
+                  Objetivo mensual — {goalMonth > 0 ? MES_LABELS[goalMonth - 1] : ""} {goalYear}
+                </h3>
+              </div>
+              <div className="objetivos-grid">
+                {goalProgress.map((g) => (
+                  <div
+                    key={g.userId}
+                    className={`objetivo-card ${
+                      g.onTrack === null ? "objetivo-sin-meta" :
+                      g.onTrack ? "objetivo-verde" : "objetivo-rojo"
+                    }`}
+                  >
+                    <div className="objetivo-nombre">{g.name}</div>
+                    {g.percent !== null ? (
+                      <>
+                        <div className="objetivo-pct">{g.percent}%</div>
+                        <div className="objetivo-montos">
+                          ${g.currentFormatted} / ${g.targetFormatted}
+                        </div>
+                        <div className="objetivo-barra-bg">
+                          <div
+                            className="objetivo-barra-fill"
+                            style={{ width: `${Math.min(g.percent, 100)}%` }}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="objetivo-sin-objetivo">Sin objetivo configurado</div>
+                    )}
+                  </div>
+                ))}
+                {goalProgress.length === 0 && isAdmin && (
+                  <p className="objetivo-empty">Sin objetivos configurados para este año.</p>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Calendario semanal */}
           <div className="semana-calendario">
@@ -145,6 +227,7 @@ export default function PanelControlPage() {
           </div>
         </>
       )}
+
     </div>
   );
 }

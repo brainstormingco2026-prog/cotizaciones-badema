@@ -3,14 +3,15 @@
  * Documentación: https://ayuda.contabilium.com/hc/es/articles/360013444234
  * Endpoints: https://documenter.getpostman.com/view/17702437/2s93shz9yz
  *
- * Configurar CONTABILIUM_API_URL, CONTABILIUM_CLIENT_ID y CONTABILIUM_CLIENT_SECRET en .env
+ * Configurar CONTABILIUM_API_URL, CONTABILIUM_EMAIL y CONTABILIUM_API_KEY en .env
+ * Auth: grant_type=password con email como username y API Key como password
  */
 
 const BASE_URL = process.env.CONTABILIUM_API_URL ?? "https://rest.contabilium.com";
 
 export type ContabiliumConfig = {
-  clientId: string;
-  clientSecret: string;
+  email: string;
+  apiKey: string;
 };
 
 let cachedToken: { access_token: string; expires_at: number } | null = null;
@@ -24,8 +25,8 @@ async function getAccessToken(config: ContabiliumConfig): Promise<string> {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       grant_type: "client_credentials",
-      client_id: config.clientId,
-      client_secret: config.clientSecret,
+      client_id: config.email,
+      client_secret: config.apiKey,
     }),
   });
   if (!res.ok) {
@@ -84,8 +85,8 @@ export async function createContabiliumClient(config: ContabiliumConfig) {
  * Obtener configuración desde env (para jobs/cron)
  */
 export function getContabiliumConfigFromEnv(): ContabiliumConfig | null {
-  const clientId = process.env.CONTABILIUM_CLIENT_ID;
-  const clientSecret = process.env.CONTABILIUM_CLIENT_SECRET;
-  if (!clientId || !clientSecret) return null;
-  return { clientId, clientSecret };
+  const email = process.env.CONTABILIUM_EMAIL;
+  const apiKey = process.env.CONTABILIUM_API_KEY;
+  if (!email || !apiKey) return null;
+  return { email, apiKey };
 }

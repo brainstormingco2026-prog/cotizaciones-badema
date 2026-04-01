@@ -51,6 +51,18 @@ export async function GET(req: NextRequest) {
       ? quotations
       : quotations.filter((q) => canSeeQuotation(q.assignedToId, user));
 
-  const enriched = filtered.map((q) => enrichIdVendedorFromRawData(q));
+  const idVendedores = [...new Set(filtered.map((q) => q.idVendedor).filter(Boolean))] as string[];
+  const vendorUsers = idVendedores.length
+    ? await prisma.user.findMany({
+        where: { contabiliumId: { in: idVendedores } },
+        select: { contabiliumId: true, name: true, email: true },
+      })
+    : [];
+  const vendorMap = new Map(vendorUsers.map((u) => [u.contabiliumId!, { name: u.name, email: u.email }]));
+
+  const enriched = filtered.map((q) => ({
+    ...enrichIdVendedorFromRawData(q),
+    vendedor: q.idVendedor ? (vendorMap.get(q.idVendedor) ?? null) : null,
+  }));
   return Response.json({ quotations: enriched });
 }

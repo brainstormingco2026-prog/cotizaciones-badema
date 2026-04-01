@@ -112,9 +112,18 @@ export async function syncQuotationsFromContabilium(): Promise<{
       const config = getContabiliumConfigFromEnv();
       if (!config) throw new Error("Contabilium credentials not configured");
       const client = await createContabiliumClient(config);
-      // Endpoint: https://rest.contabilium.com/api/comprobantes/search?TipoFc="COT"
+      // Endpoint: https://rest.contabilium.com/api/comprobantes/search?TipoFc="COT"&FechaDesde=DD/MM/AAAA
       const path = process.env.CONTABILIUM_COTIZACIONES_PATH ?? "/api/comprobantes/search";
-      items = await client.getPaginated<ExternalQuotation>(path, { TipoFc: '"COT"' }).catch((e) => {
+      // FechaDesde y FechaHasta requeridas (formato DD/MM/YYYY)
+      // Por defecto: desde 2 años atrás hasta hoy. Configurable via CONTABILIUM_FECHA_DESDE / CONTABILIUM_FECHA_HASTA
+      const fmt = (d: Date) =>
+        `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+      const today = new Date();
+      const twoYearsAgo = new Date(today);
+      twoYearsAgo.setFullYear(today.getFullYear() - 2);
+      const fechaDesde = process.env.CONTABILIUM_FECHA_DESDE ?? fmt(twoYearsAgo);
+      const fechaHasta = process.env.CONTABILIUM_FECHA_HASTA ?? fmt(today);
+      items = await client.getPaginated<ExternalQuotation>(path, { TipoFc: "COT", FechaDesde: fechaDesde, FechaHasta: fechaHasta }).catch((e) => {
         errors.push(String(e.message));
         return [];
       });

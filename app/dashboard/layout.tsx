@@ -80,7 +80,10 @@ export default function DashboardLayout({
   const navItems = [
     { href: "/dashboard", label: "Panel de Control" },
     { href: "/dashboard/cotizaciones", label: "Cotizaciones" },
-    ...(user.role === "ADMIN" ? [{ href: "/dashboard/admin/vendedores", label: "Vendedores" }] : []),
+    ...(user.role === "ADMIN" ? [
+      { href: "/dashboard/admin/vendedores", label: "Vendedores" },
+      { href: "/dashboard/admin/token", label: "Token API" },
+    ] : []),
   ];
 
   return (

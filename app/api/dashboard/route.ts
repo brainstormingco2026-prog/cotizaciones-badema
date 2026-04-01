@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 
-const STATES = ["borrador", "enviada", "aceptada", "rechazada", "pendiente"] as const;
+const STATES = ["borrador", "enviada", "aceptada", "rechazada", "facturada"] as const;
 
 function parseImporte(s: string | null): number {
   if (!s) return 0;

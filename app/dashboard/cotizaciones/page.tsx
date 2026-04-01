@@ -32,6 +32,7 @@ type Quotation = {
   importeTotalNeto: string | null;
   observaciones: string | null;
   idVendedor: string | null;
+  vendedor: { name: string; email: string } | null;
   motivoRechazo: string | null;
   client: { id: string; name: string; email: string | null; phone: string | null; address: string | null };
   assignedTo: { id: string; name: string; email: string } | null;
@@ -46,10 +47,10 @@ const FREQ_LABELS: Record<string, string> = {
 
 const STATE_ORDER: Record<string, number> = {
   borrador: 0,
-  pendiente: 1,
-  enviada: 2,
-  aceptada: 3,
-  rechazada: 4,
+  enviada: 1,
+  aceptada: 2,
+  rechazada: 3,
+  facturada: 4,
 };
 
 type EditingCell = { id: string; field: "successPercent" | "followUpFreq" | "motivoRechazo" };
@@ -110,7 +111,7 @@ export default function CotizacionesPage() {
     }
   }
 
-  const CLOSED_STATES = ["aceptada", "rechazada"];
+  const CLOSED_STATES = ["aceptada", "rechazada", "facturada"];
 
   function startEdit(q: Quotation, field: EditingCell["field"]) {
     if (field !== "motivoRechazo" && CLOSED_STATES.includes(q.state)) return;
@@ -155,10 +156,10 @@ export default function CotizacionesPage() {
         {[
           { value: "", label: "Todas" },
           { value: "borrador", label: "Borrador" },
-          { value: "pendiente", label: "Pendiente" },
           { value: "enviada", label: "Enviada" },
           { value: "aceptada", label: "Aprobada" },
           { value: "rechazada", label: "Rechazada" },
+          { value: "facturada", label: "Facturada" },
         ].map((tab) => (
           <button
             key={tab.value}
@@ -235,7 +236,7 @@ export default function CotizacionesPage() {
                       <span className="muted">—</span>
                     )}
                   </td>
-                  <td data-label="Vendedor" className="col-hide-mobile">{q.idVendedor ?? "—"}</td>
+                  <td data-label="Vendedor" className="col-hide-mobile">{q.vendedor?.email ?? q.idVendedor ?? "—"}</td>
                   <td data-label="Cliente">{q.client.name}</td>
                   <td data-label="% Cierre" className={`col-center col-editable${CLOSED_STATES.includes(q.state) ? " col-locked" : ""}`} onClick={() => startEdit(q, "successPercent")}>
                     {editing?.id === q.id && editing.field === "successPercent" ? (

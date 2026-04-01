@@ -50,13 +50,13 @@ type VendorQuotation = {
 
 const STATE_LABELS: Record<string, string> = {
   borrador: "Borrador",
-  pendiente: "Pendiente",
   enviada: "Enviada",
   aceptada: "Aprobada",
   rechazada: "Rechazada",
+  facturada: "Facturada",
 };
 
-const STATE_ORDER = ["borrador", "pendiente", "enviada", "aceptada", "rechazada"];
+const STATE_ORDER = ["borrador", "enviada", "aceptada", "rechazada", "facturada"];
 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
 
@@ -75,10 +75,10 @@ function getMondayOfCurrentWeek(): Date {
 
 const STATE_LABELS_MODAL: Record<string, string> = {
   borrador: "Borrador",
-  pendiente: "Pendiente",
   enviada: "Enviada",
   aceptada: "Aprobada",
   rechazada: "Rechazada",
+  facturada: "Facturada",
 };
 
 export default function PanelControlPage() {
@@ -90,9 +90,45 @@ export default function PanelControlPage() {
   const [goalMonth, setGoalMonth] = useState(0);
   const [goalYear, setGoalYear] = useState(new Date().getFullYear());
   const [isAdmin, setIsAdmin] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
   const [vendorModal, setVendorModal] = useState<{ userId: string; name: string } | null>(null);
   const [vendorQuotations, setVendorQuotations] = useState<VendorQuotation[]>([]);
   const [vendorLoading, setVendorLoading] = useState(false);
+
+  async function handleSync() {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/sync", { method: "POST", headers: getAuthHeader() });
+      const data = await res.json();
+      if (!res.ok) {
+        setSyncResult(`Error: ${data.error}`);
+      } else {
+        const q = data.quotations;
+        const v = data.vendors;
+        const parts = [`Cotizaciones: ${q.created} nuevas, ${q.updated} actualizadas`];
+        if (v?.created > 0 || v?.updated > 0) {
+          const vParts = [];
+          if (v.created > 0) vParts.push(`${v.created} creados`);
+          if (v.updated > 0) vParts.push(`${v.updated} actualizados`);
+          parts.push(`Vendedores: ${vParts.join(", ")}`);
+        }
+        if (q.errors?.length) parts.push(`⚠ ${q.errors[0]}`);
+        if (q.mock) parts.push("(datos simulados)");
+        setSyncResult(parts.join(" · "));
+        // Recargar datos del dashboard
+        fetch("/api/dashboard", { headers: getAuthHeader() })
+          .then((r) => r.ok ? r.json() : null)
+          .then((d) => { if (d) { setByState(d.byState ?? []); setWeekFollowUps(d.weekFollowUps ?? []); } });
+        loadGoals();
+      }
+    } catch {
+      setSyncResult("Error de red al sincronizar");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   function loadGoals() {
     fetch("/api/goals", { headers: getAuthHeader() })
@@ -201,6 +237,20 @@ export default function PanelControlPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="sync-bar">
+          <button
+            type="button"
+            className="sync-btn"
+            onClick={handleSync}
+            disabled={syncing}
+          >
+            {syncing ? "Sincronizando…" : "↻ Sincronizar con Contabilium"}
+          </button>
+          {syncResult && <span className="sync-result">{syncResult}</span>}
         </div>
       )}
 

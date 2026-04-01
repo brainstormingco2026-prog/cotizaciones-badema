@@ -14,10 +14,13 @@ type VendorRow = {
   name: string;
   email: string;
   contabiliumId: string | null;
+  phone: string | null;
   target: string;
   saving: boolean;
   saved: boolean;
   error: string;
+  editingPhone: boolean;
+  phoneInput: string;
 };
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -25,18 +28,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 export default function VendedoresAdminPage() {
   const router = useRouter();
   const [rows, setRows] = useState<VendorRow[]>([]);
-  const [unlinkedIds, setUnlinkedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Formulario nuevo vendedor
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [contabiliumId, setContabiliumId] = useState("");
-  const [newTarget, setNewTarget] = useState("");
 
   function load() {
     setLoading(true);
@@ -52,18 +44,20 @@ export default function VendedoresAdminPage() {
         (goalsData.progress ?? []).map((g: { userId: string; monthlyTarget: number | null }) => [g.userId, g.monthlyTarget])
       );
       setRows(
-        (usersData.users ?? []).map((v: { id: string; name: string; email: string; contabiliumId: string | null }) => ({
+        (usersData.users ?? []).map((v: { id: string; name: string; email: string; contabiliumId: string | null; phone: string | null }) => ({
           id: v.id,
           name: v.name,
           email: v.email,
           contabiliumId: v.contabiliumId,
+          phone: v.phone,
           target: goalMap.has(v.id) && goalMap.get(v.id) != null ? String(goalMap.get(v.id)) : "",
           saving: false,
           saved: false,
           error: "",
+          editingPhone: false,
+          phoneInput: v.phone ?? "",
         }))
       );
-      setUnlinkedIds(usersData.unlinkedIds ?? []);
     }).finally(() => setLoading(false));
   }
 
@@ -97,32 +91,25 @@ export default function VendedoresAdminPage() {
     }
   }
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    setError(""); setSuccess(""); setSaving(true);
+  async function savePhone(id: string) {
+    const row = rows.find((r) => r.id === id);
+    if (!row) return;
+    updateRow(id, { saving: true, error: "" });
     try {
       const res = await fetch("/api/users", {
-        method: "POST",
+        method: "PATCH",
         headers: { "Content-Type": "application/json", ...getAuthHeader() },
-        body: JSON.stringify({ name, email, password, contabiliumId }),
+        body: JSON.stringify({ id, phone: row.phoneInput }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Error al crear vendedor"); return; }
-
-      const amount = parseFloat(newTarget.replace(/\./g, "").replace(",", "."));
-      if (!isNaN(amount) && amount > 0) {
-        await fetch("/api/goals", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", ...getAuthHeader() },
-          body: JSON.stringify({ userId: data.user.id, year: CURRENT_YEAR, monthlyTarget: amount }),
-        });
+      if (!res.ok) {
+        updateRow(id, { error: data.error ?? "Error al guardar" });
+      } else {
+        updateRow(id, { phone: data.user.phone, editingPhone: false, saved: true });
+        setTimeout(() => updateRow(id, { saved: false }), 2000);
       }
-
-      setSuccess(`Vendedor "${data.user.name}" creado correctamente`);
-      setName(""); setEmail(""); setPassword(""); setContabiliumId(""); setNewTarget("");
-      load();
     } finally {
-      setSaving(false);
+      updateRow(id, { saving: false });
     }
   }
 
@@ -135,10 +122,9 @@ export default function VendedoresAdminPage() {
         </button>
       </div>
 
-      {/* Tabla unificada */}
       <section className="admin-section">
         <h3>Vendedores — {CURRENT_YEAR}</h3>
-        <p className="admin-hint">El objetivo mensual es el monto en pesos que cada vendedor debe alcanzar por mes.</p>
+        <p className="admin-hint">Hacé click en el teléfono para editarlo. El objetivo mensual es el monto en pesos por mes.</p>
         {loading ? (
           <p className="muted">Cargando…</p>
         ) : rows.length === 0 ? (
@@ -149,6 +135,7 @@ export default function VendedoresAdminPage() {
               <tr>
                 <th>Nombre</th>
                 <th>Email</th>
+                <th>WhatsApp</th>
                 <th>ID Contabilium</th>
                 <th>Objetivo mensual ($)</th>
                 <th></th>
@@ -159,6 +146,30 @@ export default function VendedoresAdminPage() {
                 <tr key={row.id}>
                   <td data-label="Nombre">{row.name}</td>
                   <td data-label="Email">{row.email}</td>
+                  <td data-label="WhatsApp" className="col-editable" onClick={() => !row.editingPhone && updateRow(row.id, { editingPhone: true, phoneInput: row.phone ?? "" })}>
+                    {row.editingPhone ? (
+                      <div className="phone-edit-row">
+                        <input
+                          type="tel"
+                          className="inline-input"
+                          value={row.phoneInput}
+                          placeholder="ej. 5493513144617"
+                          onChange={(e) => updateRow(row.id, { phoneInput: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") savePhone(row.id);
+                            if (e.key === "Escape") updateRow(row.id, { editingPhone: false });
+                          }}
+                          autoFocus
+                        />
+                        <button type="button" className="goal-save-btn" onClick={() => savePhone(row.id)} disabled={row.saving}>
+                          {row.saving ? "…" : "✓"}
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="editable-value">{row.phone ?? <span className="muted">— click para agregar</span>}</span>
+                    )}
+                    {row.error && <span className="goal-inline-error">{row.error}</span>}
+                  </td>
                   <td data-label="ID Contabilium">{row.contabiliumId ?? <span className="muted">—</span>}</td>
                   <td data-label="Objetivo ($)">
                     <input
@@ -171,7 +182,6 @@ export default function VendedoresAdminPage() {
                       onChange={(e) => updateRow(row.id, { target: e.target.value, error: "", saved: false })}
                       onKeyDown={(e) => e.key === "Enter" && saveGoal(row.id)}
                     />
-                    {row.error && <span className="goal-inline-error">{row.error}</span>}
                   </td>
                   <td data-label="">
                     <button
@@ -188,61 +198,6 @@ export default function VendedoresAdminPage() {
             </tbody>
           </table>
         )}
-      </section>
-
-      {/* IDs sin usuario */}
-      {unlinkedIds.length > 0 && (
-        <section className="admin-section">
-          <h3>IDs de Contabilium sin usuario CRM</h3>
-          <p className="admin-hint">
-            Estos IDs aparecen en cotizaciones pero no tienen un usuario asignado. Hacé click para autocompletar el formulario.
-          </p>
-          <div className="unlinked-ids">
-            {unlinkedIds.map((id) => (
-              <button key={id} type="button" className="unlinked-id-chip" onClick={() => setContabiliumId(id)}>
-                {id}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Formulario nuevo vendedor */}
-      <section className="admin-section">
-        <h3>Agregar vendedor</h3>
-        <form className="admin-form" onSubmit={handleCreate}>
-          <div className="admin-form-row">
-            <label>
-              Nombre
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Juan Pérez" required />
-            </label>
-            <label>
-              Email
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="juan@badema.com" required />
-            </label>
-          </div>
-          <div className="admin-form-row">
-            <label>
-              Contraseña inicial
-              <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="contraseña temporal" required />
-            </label>
-            <label>
-              ID Contabilium
-              <input type="text" value={contabiliumId} onChange={(e) => setContabiliumId(e.target.value)} placeholder="ej. 19532" />
-            </label>
-          </div>
-          <div className="admin-form-row">
-            <label>
-              Objetivo mensual {CURRENT_YEAR} ($)
-              <input type="number" min="0" step="1000" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} placeholder="Opcional" />
-            </label>
-          </div>
-          {error && <p className="admin-error">{error}</p>}
-          {success && <p className="admin-success">{success}</p>}
-          <button type="submit" className="admin-submit" disabled={saving}>
-            {saving ? "Creando…" : "Crear vendedor"}
-          </button>
-        </form>
       </section>
     </div>
   );

@@ -19,6 +19,7 @@ model User {
   password         String
   role             String   @default("VENDEDOR") // ADMIN | VENDEDOR
   contabiliumId    String?  // ID vendedor en Contabilium (ej. "19531")
+  phone            String?  // WhatsApp del vendedor
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   pushSubscription String?  // JSON string para notificaciones push
@@ -92,6 +93,13 @@ model FollowUp {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   notes       String?
   contactedAt DateTime  @default(now())
+}
+
+// Configuración clave-valor del sistema (token Contabilium, etc.)
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 model SyncLog {

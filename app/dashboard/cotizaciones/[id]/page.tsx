@@ -32,13 +32,18 @@ type QuotationDetail = {
   importeTotalNeto: string | null;
   observaciones: string | null;
   idVendedor: string | null;
+  vendedor: { name: string; email: string } | null;
   motivoRechazo: string | null;
   client: { name: string; email: string | null; phone: string | null; address: string | null };
   assignedTo: { name: string; email: string } | null;
 };
 
 const STATE_LABELS: Record<string, string> = {
-  abierta: "Abierta", ganada: "Ganada", perdida: "Perdida", borrador: "Borrador", enviada: "Enviada",
+  borrador: "Borrador",
+  enviada: "Enviada",
+  aceptada: "Aprobada",
+  rechazada: "Rechazada",
+  facturada: "Facturada",
 };
 const FREQ_OPTIONS = [{ value: "DAYS_3", label: "Cada 3 días" }, { value: "DAYS_7", label: "Cada 7 días" }, { value: "DAYS_15", label: "Cada 15 días" }, { value: "DAYS_30", label: "Cada 30 días" }];
 
@@ -134,8 +139,8 @@ export default function CotizacionDetallePage() {
             <dd>{q.importeTotalNeto ?? "—"}</dd>
             <dt>Observaciones</dt>
             <dd>{q.observaciones && q.observaciones !== "" ? q.observaciones : "—"}</dd>
-            <dt>IDVendedor</dt>
-            <dd>{q.idVendedor && q.idVendedor !== "" ? q.idVendedor : "—"}</dd>
+            <dt>Vendedor</dt>
+            <dd>{q.vendedor?.email ?? q.idVendedor ?? "—"}</dd>
           </dl>
         </div>
         <div className="cotizacion-detail-section">
@@ -213,7 +218,7 @@ export default function CotizacionDetallePage() {
             </button>
           </div>
         )}
-        {q.state !== "rechazada" && (
+        {!["rechazada", "aceptada", "facturada"].includes(q.state) && (
           <div className="cotizacion-detail-section">
             <h3>Seguimiento</h3>
             <label>

@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
   const vendorUsers = idVendedores.length
     ? await prisma.user.findMany({
         where: { contabiliumId: { in: idVendedores } },
-        select: { contabiliumId: true, name: true, email: true },
+        select: { contabiliumId: true, name: true, email: true, phone: true },
       })
     : [];
   const vendorMap = new Map(vendorUsers.map((u) => [u.contabiliumId!, { name: u.name, email: u.email }]));

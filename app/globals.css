@@ -918,6 +918,7 @@
 
 /* Iconos de contacto en tabla */
 .col-contact { display: flex; gap: 0.35rem; align-items: center; }
+.vendor-cell { display: flex; align-items: center; gap: 0.4rem; }
 .btn-contact-icon {
   display: inline-flex;
   align-items: center;
@@ -1252,8 +1253,6 @@
 
 /* ── Admin vendedores ─────────────────────────────────── */
 .admin-vendedores {
-  max-width: 800px;
-  margin: 0 auto;
   padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;
@@ -1417,7 +1416,6 @@
   padding: 0.35rem 0.7rem;
   flex-shrink: 0;
 }
-.goals-table td:nth-child(3) { min-width: 220px; }
 .goals-table .goal-input {
   width: 140px;
   padding: 0.4rem 0.6rem;

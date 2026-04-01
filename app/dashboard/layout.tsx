@@ -82,7 +82,6 @@ export default function DashboardLayout({
     { href: "/dashboard/cotizaciones", label: "Cotizaciones" },
     ...(user.role === "ADMIN" ? [
       { href: "/dashboard/admin/vendedores", label: "Vendedores" },
-      { href: "/dashboard/admin/token", label: "Token API" },
     ] : []),
   ];
 

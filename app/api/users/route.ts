@@ -15,8 +15,8 @@ export async function GET(req: NextRequest) {
   const [users, rawIds] = await Promise.all([
     prisma.user.findMany({
       where: { role: "VENDEDOR" },
-      select: { id: true, name: true, email: true, contabiliumId: true, phone: true, callmebotApiKey: true },
-      orderBy: { name: "asc" },
+      select: { id: true, name: true, email: true, contabiliumId: true, phone: true, callmebotApiKey: true, active: true },
+      orderBy: [{ active: "desc" }, { name: "asc" }],
     }),
     prisma.quotation.findMany({
       where: { idVendedor: { not: null } },
@@ -73,33 +73,49 @@ export async function POST(req: NextRequest) {
   const hashed = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
     data: { name: name.trim(), email: email.trim(), password: hashed, role: "VENDEDOR", contabiliumId: contabiliumId?.trim() || null },
-    select: { id: true, name: true, email: true, contabiliumId: true },
+    select: { id: true, name: true, email: true, contabiliumId: true, active: true },
   });
 
   return Response.json({ user }, { status: 201 });
 }
 
-/** PATCH /api/users — solo admin, actualiza teléfono (y nombre/contabiliumId) */
+/** PATCH /api/users — solo admin, actualiza campos del vendedor */
 export async function PATCH(req: NextRequest) {
   const auth = await requireAuth(req);
   if ("error" in auth) return Response.json({ error: auth.error }, { status: auth.status });
   if (auth.user.role !== "ADMIN") return Response.json({ error: "No autorizado" }, { status: 403 });
 
-  const { id, phone, name, contabiliumId, callmebotApiKey } = await req.json() as {
-    id: string; phone?: string; name?: string; contabiliumId?: string; callmebotApiKey?: string;
+  const { id, phone, name, contabiliumId, callmebotApiKey, active } = await req.json() as {
+    id: string; phone?: string; name?: string; contabiliumId?: string; callmebotApiKey?: string; active?: boolean;
   };
   if (!id) return Response.json({ error: "id requerido" }, { status: 400 });
 
-  const data: Record<string, string | null> = {};
+  // Verificar cotizaciones asociadas antes de desactivar
+  if (active === false) {
+    const user = await prisma.user.findUnique({ where: { id }, select: { contabiliumId: true } });
+    const orConditions: object[] = [{ assignedToId: id }];
+    if (user?.contabiliumId) orConditions.push({ idVendedor: user.contabiliumId });
+
+    const count = await prisma.quotation.count({ where: { OR: orConditions } });
+    if (count > 0) {
+      return Response.json(
+        { error: `No se puede desactivar: el vendedor tiene ${count} cotización${count !== 1 ? "es" : ""} asociada${count !== 1 ? "s" : ""}` },
+        { status: 409 }
+      );
+    }
+  }
+
+  const data: Record<string, string | boolean | null> = {};
   if (phone !== undefined) data.phone = phone?.trim() || null;
   if (name !== undefined) data.name = name.trim();
   if (contabiliumId !== undefined) data.contabiliumId = contabiliumId?.trim() || null;
   if (callmebotApiKey !== undefined) data.callmebotApiKey = callmebotApiKey?.trim() || null;
+  if (active !== undefined) data.active = active;
 
   const user = await prisma.user.update({
     where: { id },
     data,
-    select: { id: true, name: true, email: true, contabiliumId: true, phone: true, callmebotApiKey: true },
+    select: { id: true, name: true, email: true, contabiliumId: true, phone: true, callmebotApiKey: true, active: true },
   });
   return Response.json({ user });
 }

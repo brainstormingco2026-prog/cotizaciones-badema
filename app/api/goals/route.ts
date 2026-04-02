@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     // Admin: todos los vendedores (con o sin objetivo configurado)
     const [allVendors, goals] = await Promise.all([
       prisma.user.findMany({
-        where: { role: "VENDEDOR" },
+        where: { role: "VENDEDOR", active: true },
         select: { id: true, name: true, contabiliumId: true },
         orderBy: { name: "asc" },
       }),

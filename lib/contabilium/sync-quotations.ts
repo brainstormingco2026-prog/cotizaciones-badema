@@ -225,11 +225,23 @@ export async function syncQuotationsFromContabilium(): Promise<{
 }
 
 /**
- * Calcula la próxima fecha de seguimiento según la frecuencia elegida.
+ * Agrega N días hábiles (lunes a viernes) a partir de una fecha.
+ */
+function addBusinessDays(from: Date, days: number): Date {
+  const result = new Date(from);
+  let remaining = days;
+  while (remaining > 0) {
+    result.setDate(result.getDate() + 1);
+    const dow = result.getDay();
+    if (dow !== 0 && dow !== 6) remaining--; // saltar sábado (6) y domingo (0)
+  }
+  return result;
+}
+
+/**
+ * Calcula la próxima fecha de seguimiento según la frecuencia elegida,
+ * contando solo días hábiles (lunes a viernes).
  */
 export function computeNextFollowUp(frequency: FollowUpFrequency): Date {
-  const days = FREQUENCY_DAYS[frequency];
-  const next = new Date();
-  next.setDate(next.getDate() + days);
-  return next;
+  return addBusinessDays(new Date(), FREQUENCY_DAYS[frequency]);
 }

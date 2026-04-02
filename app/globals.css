@@ -886,6 +886,52 @@
 }
 .btn-save:hover:not(:disabled) { background: var(--badema-primary-hover); }
 .btn-save:disabled { opacity: 0.7; cursor: not-allowed; }
+.btn-save-ok { background: #22a06b !important; }
+
+/* Estado inline en header de cotización */
+.cotizacion-state-editor {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.cotizacion-state-select {
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--badema-border);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.cotizacion-state-select.state-borrador  { background-color: #f1f5f9; color: #475569; }
+.cotizacion-state-select.state-enviada   { background-color: #eff6ff; color: #1d4ed8; }
+.cotizacion-state-select.state-aceptada  { background-color: #f0fdf4; color: #15803d; }
+.cotizacion-state-select.state-rechazada { background-color: #fff1f2; color: #be123c; }
+.cotizacion-state-select.state-facturada { background-color: #faf5ff; color: #7e22ce; }
+.cotizacion-state-select:disabled { opacity: 0.7; cursor: not-allowed; }
+.btn-state-save {
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
+  border: none;
+  background: var(--badema-primary);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-state-save:disabled { opacity: 0.7; cursor: not-allowed; }
+.state-saved-ok {
+  font-size: 0.8rem;
+  color: #15803d;
+  font-weight: 600;
+}
+
+.state-warning {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #b45309;
+}
 
 /* Contacto cliente */
 .client-contact-row {

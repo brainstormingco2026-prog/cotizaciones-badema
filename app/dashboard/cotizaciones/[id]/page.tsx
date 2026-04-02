@@ -45,6 +45,8 @@ const STATE_LABELS: Record<string, string> = {
   rechazada: "Rechazada",
   facturada: "Facturada",
 };
+
+const ALL_STATES = ["borrador", "enviada", "aceptada", "rechazada", "facturada"] as const;
 const FREQ_OPTIONS = [{ value: "DAYS_3", label: "Cada 3 días" }, { value: "DAYS_7", label: "Cada 7 días" }, { value: "DAYS_15", label: "Cada 15 días" }, { value: "DAYS_30", label: "Cada 30 días" }];
 
 export default function CotizacionDetallePage() {
@@ -59,6 +61,11 @@ export default function CotizacionDetallePage() {
   const [motivoRechazo, setMotivoRechazo] = useState<string | "">("");
   const [copiedEmail, setCopiedEmail] = useState(false);
   const copyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [newState, setNewState] = useState<string>("");
+  const [savingState, setSavingState] = useState(false);
+  const [stateError, setStateError] = useState<string | null>(null);
+  const [stateWarning, setStateWarning] = useState<string | null>(null);
+  const [stateOk, setStateOk] = useState(false);
 
   useEffect(() => {
     fetch(`/api/quotations/${id}`, { headers: getAuthHeader() })
@@ -69,6 +76,7 @@ export default function CotizacionDetallePage() {
           setSuccessPercent(data.successPercent ?? 50);
           setFollowUpFreq(data.followUpFreq ?? "");
           setMotivoRechazo(data.motivoRechazo ?? "");
+          setNewState(data.state);
         }
       })
       .finally(() => setLoading(false));
@@ -103,6 +111,35 @@ export default function CotizacionDetallePage() {
     }
   }
 
+  async function handleStateChange() {
+    if (!q || !newState || newState === q.state) return;
+    setSavingState(true);
+    setStateError(null);
+    setStateWarning(null);
+    setStateOk(false);
+    try {
+      const res = await fetch(`/api/quotations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
+        body: JSON.stringify({ state: newState }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setQ(data);
+        setNewState(data.state);
+        setStateOk(true);
+        if (data.contabiliumWarning) {
+          setStateWarning(`Guardado en CRM. No se pudo sincronizar con Contabilium: ${data.contabiliumWarning}`);
+        }
+        setTimeout(() => setStateOk(false), 3000);
+      } else {
+        setStateError(data.error ?? "Error al cambiar estado");
+      }
+    } finally {
+      setSavingState(false);
+    }
+  }
+
   if (loading) return <p className="muted">Cargando…</p>;
   if (!q) return <p className="muted">Cotización no encontrada.</p>;
 
@@ -126,7 +163,31 @@ export default function CotizacionDetallePage() {
               Sin seguimiento
             </span>
           )}
-          <span className={`cotizacion-state state-${q.state}`}>{STATE_LABELS[q.state] ?? q.state}</span>
+          <div className="cotizacion-state-editor">
+            <select
+              value={newState || q.state}
+              onChange={(e) => { setNewState(e.target.value); setStateError(null); setStateOk(false); }}
+              className={`cotizacion-state-select state-${newState || q.state}`}
+              disabled={savingState}
+            >
+              {ALL_STATES.map((s) => (
+                <option key={s} value={s}>{STATE_LABELS[s]}</option>
+              ))}
+            </select>
+            {newState && newState !== q.state && (
+              <button
+                type="button"
+                onClick={handleStateChange}
+                disabled={savingState}
+                className={`btn-state-save${stateOk ? " btn-save-ok" : ""}`}
+              >
+                {savingState ? "…" : "✓"}
+              </button>
+            )}
+            {stateOk && <span className="state-saved-ok">Guardado ✓</span>}
+          </div>
+          {stateError && <p className="goal-inline-error" style={{margin: "0.25rem 0 0"}}>{stateError}</p>}
+          {stateWarning && <p className="state-warning" style={{margin: "0.25rem 0 0"}}>{stateWarning}</p>}
         </div>
         <div className="cotizacion-detail-section">
           <h3>Datos del comprobante (Contabilium)</h3>

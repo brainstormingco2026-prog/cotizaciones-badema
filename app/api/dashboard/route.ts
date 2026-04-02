@@ -39,9 +39,21 @@ export async function GET(req: NextRequest) {
       ? { assignedToId: auth.user.id }
       : {};
 
+  // Filtro de fecha (opcional) para los widgets de estado
+  const from = req.nextUrl.searchParams.get("from");
+  const to = req.nextUrl.searchParams.get("to");
+  const dateFilter = (from || to)
+    ? {
+        fechaEmision: {
+          ...(from ? { gte: new Date(from) } : {}),
+          ...(to ? { lte: new Date(to + "T23:59:59.999Z") } : {}),
+        },
+      }
+    : {};
+
   // Widgets por estado
   const quotations = await prisma.quotation.findMany({
-    where: vendedorFilter,
+    where: { ...vendedorFilter, ...dateFilter },
     select: { state: true, importeTotalNeto: true },
   });
 

@@ -1753,3 +1753,93 @@
 }
 .token-instructions h4 { margin-bottom: 0.5rem; font-size: 0.9rem; }
 .token-instructions ol { padding-left: 1.2rem; line-height: 1.9; }
+
+/* ── Búsqueda en cotizaciones ─────────────────────────── */
+.cotizaciones-search {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+.cotizaciones-search-input {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--badema-border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  width: 100%;
+  max-width: 320px;
+  background: #fff;
+  color: var(--badema-text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.cotizaciones-search-input:focus { border-color: var(--badema-primary); }
+.cotizaciones-search-count {
+  font-size: 0.8rem;
+  color: var(--badema-text-muted);
+  white-space: nowrap;
+}
+
+/* ── Filas clickeables en cotizaciones ───────────────── */
+.cotizacion-row { cursor: pointer; }
+.cotizacion-row:hover td { background: rgba(0,0,0,0.025); }
+
+/* ── Filtro de fecha en dashboard ─────────────────────── */
+.date-filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+.date-filter-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.date-filter-btn {
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--badema-border);
+  border-radius: 20px;
+  background: #fff;
+  color: var(--badema-text);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+.date-filter-btn:hover { border-color: var(--badema-primary); color: var(--badema-primary); }
+.date-filter-btn-active {
+  background: var(--badema-primary);
+  border-color: var(--badema-primary);
+  color: #fff;
+  font-weight: 600;
+}
+.date-filter-btn-active:hover { background: var(--badema-primary-hover); border-color: var(--badema-primary-hover); color: #fff; }
+.date-filter-custom {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.date-filter-input {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--badema-border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: #fff;
+  color: var(--badema-text);
+}
+.date-filter-sep { color: var(--badema-text-muted); font-size: 0.85rem; }
+.date-filter-apply {
+  padding: 0.35rem 0.9rem;
+  background: var(--badema-primary);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.date-filter-apply:hover { background: var(--badema-primary-hover); }

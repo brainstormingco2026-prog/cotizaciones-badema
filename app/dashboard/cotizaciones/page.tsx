@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 function getAuthHeader(): Record<string, string> {
   if (typeof window === "undefined") return {};
@@ -67,9 +67,11 @@ type EditingCell = { id: string; field: "successPercent" | "followUpFreq" | "mot
 
 export default function CotizacionesPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>(searchParams.get("estado") ?? "");
+  const [searchText, setSearchText] = useState("");
   const [user, setUser] = useState<{ role: string } | null>(null);
   const [syncResult, setSyncResult] = useState<{ created: number; updated: number; mock?: boolean } | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -158,6 +160,20 @@ export default function CotizacionesPage() {
     }
   }
 
+  // Filtro de texto libre (client-side sobre los datos del tab activo)
+  const displayedQuotations = searchText.trim()
+    ? quotations.filter((q) => {
+        const s = searchText.toLowerCase();
+        return (
+          q.externalId.includes(s) ||
+          q.client.name.toLowerCase().includes(s) ||
+          (q.numero ?? "").toLowerCase().includes(s) ||
+          (q.observaciones ?? "").toLowerCase().includes(s) ||
+          (q.vendedor?.email ?? "").toLowerCase().includes(s)
+        );
+      })
+    : quotations;
+
   return (
     <div className="cotizaciones-page">
       <div className="cotizaciones-toolbar">
@@ -179,19 +195,34 @@ export default function CotizacionesPage() {
             key={tab.value}
             type="button"
             className={`cotizaciones-tab${filter === tab.value ? " tab-active" : ""}${tab.value ? ` tab-${tab.value}` : ""}`}
-            onClick={() => setFilter(tab.value)}
+            onClick={() => { setFilter(tab.value); setSearchText(""); }}
           >
             {tab.label}
           </button>
         ))}
       </div>
 
+      <div className="cotizaciones-search">
+        <input
+          type="text"
+          className="cotizaciones-search-input"
+          placeholder="Buscar por cliente, ID, número…"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+        {searchText.trim() && (
+          <span className="cotizaciones-search-count">
+            {displayedQuotations.length} resultado{displayedQuotations.length !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+
       {loading && <p className="muted">Cargando cotizaciones…</p>}
-      {!loading && quotations.length === 0 && (
-        <p className="muted">No hay cotizaciones.</p>
+      {!loading && displayedQuotations.length === 0 && (
+        <p className="muted">{searchText.trim() ? "Sin resultados para esa búsqueda." : "No hay cotizaciones."}</p>
       )}
 
-      {!loading && quotations.length > 0 && (
+      {!loading && displayedQuotations.length > 0 && (
         <div className="cotizaciones-table-wrap">
           <table className="cotizaciones-table">
             <thead>
@@ -208,17 +239,24 @@ export default function CotizacionesPage() {
                 <th>Frecuencia seguimiento</th>
                 <th>Próximo seguimiento</th>
                 <th>Contacto</th>
-                <th></th>
               </tr>
             </thead>
             <tbody>
-              {[...quotations].sort((a, b) => (STATE_ORDER[a.state] ?? 99) - (STATE_ORDER[b.state] ?? 99)).map((q) => (
-                <tr key={q.id} className={`cotizacion-row row-state-${q.state}`}>
+              {[...displayedQuotations].sort((a, b) => (STATE_ORDER[a.state] ?? 99) - (STATE_ORDER[b.state] ?? 99)).map((q) => (
+                <tr
+                  key={q.id}
+                  className={`cotizacion-row row-state-${q.state}`}
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest("a, button, input, select")) return;
+                    router.push(`/dashboard/cotizaciones/${q.id}`);
+                  }}
+                >
                   <td data-label="ID" className="col-id">#{q.externalId}</td>
                   <td data-label="Fecha emisión" className="col-hide-mobile">{q.fechaEmision ? new Date(q.fechaEmision).toLocaleDateString("es-AR") : "—"}</td>
                   <td data-label="Número" className="col-hide-mobile">{q.numero ?? "—"}</td>
                   <td data-label="Importe neto" className="col-importe">{q.importeTotalNeto ?? "—"}</td>
-                  <td data-label="Estado" className="col-editable" onClick={() => startEdit(q, "state")}>
+                  <td data-label="Estado" className="col-editable" onClick={(e) => { e.stopPropagation(); startEdit(q, "state"); }}>
                     {editing?.id === q.id && editing.field === "state" ? (
                       <select
                         ref={inputRef as React.RefObject<HTMLSelectElement>}
@@ -239,7 +277,11 @@ export default function CotizacionesPage() {
                       </span>
                     )}
                   </td>
-                  <td data-label="Motivo rechazo" className={q.state === "rechazada" ? "col-editable" : ""} onClick={() => q.state === "rechazada" ? startEdit(q, "motivoRechazo") : undefined}>
+                  <td
+                    data-label="Motivo rechazo"
+                    className={q.state === "rechazada" ? "col-editable" : ""}
+                    onClick={(e) => { if (q.state === "rechazada") { e.stopPropagation(); startEdit(q, "motivoRechazo"); } }}
+                  >
                     {q.state === "rechazada" ? (
                       editing?.id === q.id && editing.field === "motivoRechazo" ? (
                         <select
@@ -283,7 +325,7 @@ export default function CotizacionesPage() {
                     </div>
                   </td>
                   <td data-label="Cliente">{q.client.name}</td>
-                  <td data-label="% Cierre" className={`col-center col-editable${CLOSED_STATES.includes(q.state) ? " col-locked" : ""}`} onClick={() => startEdit(q, "successPercent")}>
+                  <td data-label="% Cierre" className={`col-center col-editable${CLOSED_STATES.includes(q.state) ? " col-locked" : ""}`} onClick={(e) => { e.stopPropagation(); startEdit(q, "successPercent"); }}>
                     {editing?.id === q.id && editing.field === "successPercent" ? (
                       <input
                         ref={inputRef as React.RefObject<HTMLInputElement>}
@@ -300,7 +342,7 @@ export default function CotizacionesPage() {
                       <span className="editable-value">{q.successPercent}%</span>
                     )}
                   </td>
-                  <td data-label="Frecuencia" className={`col-editable${CLOSED_STATES.includes(q.state) ? " col-locked" : ""}`} onClick={() => startEdit(q, "followUpFreq")}>
+                  <td data-label="Frecuencia" className={`col-editable${CLOSED_STATES.includes(q.state) ? " col-locked" : ""}`} onClick={(e) => { e.stopPropagation(); startEdit(q, "followUpFreq"); }}>
                     {editing?.id === q.id && editing.field === "followUpFreq" ? (
                       <select
                         ref={inputRef as React.RefObject<HTMLSelectElement>}
@@ -347,11 +389,6 @@ export default function CotizacionesPage() {
                       </a>
                     )}
                     {!q.client.phone && !q.client.email && <span className="muted">—</span>}
-                  </td>
-                  <td data-label="">
-                    <Link href={`/dashboard/cotizaciones/${q.id}`} className="cotizacion-link">
-                      Ver
-                    </Link>
                   </td>
                 </tr>
               ))}

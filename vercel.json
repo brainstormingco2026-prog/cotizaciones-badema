@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/whatsapp-daily",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/whatsapp-weekly",
+      "schedule": "15 12 * * 1"
+    },
+    {
+      "path": "/api/cron/whatsapp-goals",
+      "schedule": "0 18 * * 5"
+    }
+  ]
+}

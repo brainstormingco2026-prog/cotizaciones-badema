@@ -25,6 +25,24 @@ type VendorRow = {
 
 const CURRENT_YEAR = new Date().getFullYear();
 
+/** Normaliza un teléfono argentino a E.164 (+549XXXXXXXXXX) */
+function formatArgentinePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  // Ya tiene código completo: 549XXXXXXXXXX (13 dígitos)
+  if (digits.startsWith("549") && digits.length === 13) return `+${digits}`;
+  // Tiene código país sin el 9 móvil: 54XXXXXXXXXX (12 dígitos)
+  if (digits.startsWith("54") && digits.length === 12) return `+549${digits.slice(2)}`;
+  // Empieza con 9: 9XXXXXXXXXX (11 dígitos)
+  if (digits.startsWith("9") && digits.length === 11) return `+54${digits}`;
+  // Formato local con 0: 0XXXXXXXXXX
+  if (digits.startsWith("0")) return `+549${digits.slice(1)}`;
+  // 10 dígitos (código de área + número)
+  if (digits.length === 10) return `+549${digits}`;
+  // Fallback
+  return `+${digits}`;
+}
+
 export default function VendedoresAdminPage() {
   const router = useRouter();
   const [rows, setRows] = useState<VendorRow[]>([]);
@@ -94,12 +112,13 @@ export default function VendedoresAdminPage() {
   async function savePhone(id: string) {
     const row = rows.find((r) => r.id === id);
     if (!row) return;
-    updateRow(id, { saving: true, error: "" });
+    const formattedPhone = formatArgentinePhone(row.phoneInput);
+    updateRow(id, { saving: true, error: "", phoneInput: formattedPhone });
     try {
       const res = await fetch("/api/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...getAuthHeader() },
-        body: JSON.stringify({ id, phone: row.phoneInput }),
+        body: JSON.stringify({ id, phone: formattedPhone }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -153,8 +172,12 @@ export default function VendedoresAdminPage() {
                           type="tel"
                           className="inline-input"
                           value={row.phoneInput}
-                          placeholder="ej. 5493513144617"
+                          placeholder="ej. 3517604973"
                           onChange={(e) => updateRow(row.id, { phoneInput: e.target.value })}
+                          onBlur={(e) => {
+                            const formatted = formatArgentinePhone(e.target.value);
+                            if (formatted) updateRow(row.id, { phoneInput: formatted });
+                          }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") savePhone(row.id);
                             if (e.key === "Escape") updateRow(row.id, { editingPhone: false });

@@ -107,8 +107,8 @@ export type UpdateBudgetResult =
   | { success: false; error: string; detail?: unknown };
 
 /** Estados que NO se sincronizan con Contabilium porque tienen efectos secundarios
- *  (aceptada genera comprobante, facturada se maneja desde Contabilium directamente) */
-const STATES_NO_SYNC = new Set(["aceptada", "facturada"]);
+ *  (facturada se maneja desde Contabilium directamente) */
+const STATES_NO_SYNC = new Set(["facturada"]);
 
 export async function updateBudgetStatus(
   externalId: string,

@@ -81,6 +81,43 @@ const STATE_LABELS_MODAL: Record<string, string> = {
   facturada: "Facturada",
 };
 
+type DatePreset = "" | "today" | "week" | "month" | "quarter" | "custom";
+
+function presetToRange(preset: DatePreset, customFrom: string, customTo: string): { from: string; to: string } | null {
+  if (!preset) return null;
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  if (preset === "today") {
+    const t = fmt(now);
+    return { from: t, to: t };
+  }
+  if (preset === "week") {
+    const day = now.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const mon = new Date(now); mon.setDate(now.getDate() + diff);
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+    return { from: fmt(mon), to: fmt(sun) };
+  }
+  if (preset === "month") {
+    const first = new Date(now.getFullYear(), now.getMonth(), 1);
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { from: fmt(first), to: fmt(last) };
+  }
+  if (preset === "quarter") {
+    const q = Math.floor(now.getMonth() / 3);
+    const first = new Date(now.getFullYear(), q * 3, 1);
+    const last = new Date(now.getFullYear(), q * 3 + 3, 0);
+    return { from: fmt(first), to: fmt(last) };
+  }
+  if (preset === "custom") {
+    if (!customFrom && !customTo) return null;
+    return { from: customFrom, to: customTo };
+  }
+  return null;
+}
+
 export default function PanelControlPage() {
   const router = useRouter();
   const [byState, setByState] = useState<StateWidget[]>([]);
@@ -95,6 +132,9 @@ export default function PanelControlPage() {
   const [vendorModal, setVendorModal] = useState<{ userId: string; name: string } | null>(null);
   const [vendorQuotations, setVendorQuotations] = useState<VendorQuotation[]>([]);
   const [vendorLoading, setVendorLoading] = useState(false);
+  const [datePreset, setDatePreset] = useState<DatePreset>("");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
 
   async function handleSync() {
     setSyncing(true);
@@ -118,9 +158,7 @@ export default function PanelControlPage() {
         if (q.mock) parts.push("(datos simulados)");
         setSyncResult(parts.join(" · "));
         // Recargar datos del dashboard
-        fetch("/api/dashboard", { headers: getAuthHeader() })
-          .then((r) => r.ok ? r.json() : null)
-          .then((d) => { if (d) { setByState(d.byState ?? []); setWeekFollowUps(d.weekFollowUps ?? []); } });
+        loadDashboard(datePreset, customFrom, customTo);
         loadGoals();
       }
     } catch {
@@ -150,19 +188,27 @@ export default function PanelControlPage() {
       .finally(() => setVendorLoading(false));
   }
 
-  useEffect(() => {
-    const user = getUser();
-    const admin = user?.role === "ADMIN";
-    setIsAdmin(admin);
-
-    fetch("/api/dashboard", { headers: getAuthHeader() })
+  function loadDashboard(preset: DatePreset, cFrom: string, cTo: string) {
+    setLoading(true);
+    const range = presetToRange(preset, cFrom, cTo);
+    const params = new URLSearchParams();
+    if (range?.from) params.set("from", range.from);
+    if (range?.to) params.set("to", range.to);
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    fetch(`/api/dashboard${qs}`, { headers: getAuthHeader() })
       .then((r) => (r.ok ? r.json() : { byState: [], weekFollowUps: [] }))
       .then((d) => {
         setByState(d.byState ?? []);
         setWeekFollowUps(d.weekFollowUps ?? []);
       })
       .finally(() => setLoading(false));
+  }
 
+  useEffect(() => {
+    const user = getUser();
+    const admin = user?.role === "ADMIN";
+    setIsAdmin(admin);
+    loadDashboard("", "", "");
     loadGoals();
   }, []);
 
@@ -255,6 +301,56 @@ export default function PanelControlPage() {
       )}
 
       {loading && <p className="muted">Cargando métricas…</p>}
+      {/* Filtro de fecha */}
+      <div className="date-filter-bar">
+        <div className="date-filter-presets">
+          {([
+            { key: "" as DatePreset, label: "Todo" },
+            { key: "today" as DatePreset, label: "Hoy" },
+            { key: "week" as DatePreset, label: "Esta semana" },
+            { key: "month" as DatePreset, label: "Este mes" },
+            { key: "quarter" as DatePreset, label: "Este trimestre" },
+            { key: "custom" as DatePreset, label: "Personalizado" },
+          ] as { key: DatePreset; label: string }[]).map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              className={`date-filter-btn${datePreset === key ? " date-filter-btn-active" : ""}`}
+              onClick={() => {
+                setDatePreset(key);
+                if (key !== "custom") loadDashboard(key, customFrom, customTo);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {datePreset === "custom" && (
+          <div className="date-filter-custom">
+            <input
+              type="date"
+              className="date-filter-input"
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+            />
+            <span className="date-filter-sep">—</span>
+            <input
+              type="date"
+              className="date-filter-input"
+              value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)}
+            />
+            <button
+              type="button"
+              className="date-filter-apply"
+              onClick={() => loadDashboard("custom", customFrom, customTo)}
+            >
+              Aplicar
+            </button>
+          </div>
+        )}
+      </div>
+
       {!loading && (
         <>
           {/* Widgets por estado */}

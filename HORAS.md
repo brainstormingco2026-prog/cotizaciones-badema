@@ -6,7 +6,7 @@
 |---------|-------|
 | Inicio del proyecto | 2026-03-05 |
 | Última actualización | 2026-04-01 |
-| **Total horas** | **~38 hs** |
+| **Total horas** | **~39 hs** |
 
 ---
 
@@ -21,8 +21,8 @@
 | 2026-03-22 | 2 | Fix seed-admin, documentación UAT |
 | 2026-03-24 | 5 | feat: agregar motivo de rechazo en cotizaciones y scroll en tabla;fix: reescribir hook post-commit con Python para evitar conflictos de | en sed chore: reemplazar cron por git hook post-commit para log de horas;chore: agregar log de horas y script de registro automático diario |
 | 2026-03-29 | 1 | feat: widgets clickeables, modal vendedor y tabla mobile en vendedores;feat: completar PWA con caché offline y responsive mobile feat: logo Badema, objetivo mensual de ventas por vendedor y gestión de vendedores |
-| 2026-04-01 | 2 | fix: edición de estado inline en tabla y fix sync Contabilium;feat: cambio de estado de cotización desde CRM con sync a Contabilium feat: WhatsApp vendedor en cotizaciones, layout vendedores y eliminar Token API;feat: sync automático con Contabilium, gestión de vendedores y mejoras de UI |
-| **TOTAL** | **38** | |
+| 2026-04-01 | 3 | fix: proteger fechaEmision de corrupción por Contabilium en PUT;fix: edición de estado inline en tabla y fix sync Contabilium feat: cambio de estado de cotización desde CRM con sync a Contabilium;feat: WhatsApp vendedor en cotizaciones, layout vendedores y eliminar Token API feat: sync automático con Contabilium, gestión de vendedores y mejoras de UI |
+| **TOTAL** | **39** | |
 
 ---
 

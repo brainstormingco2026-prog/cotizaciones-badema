@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // segundos (requiere Vercel Pro para >10s)
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { syncBudgetsFromContabilium } from "@/lib/contabilium/sync-budgets";

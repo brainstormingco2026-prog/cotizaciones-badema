@@ -288,15 +288,7 @@ export default function PanelControlPage() {
 
       {isAdmin && (
         <div className="sync-bar">
-          <button
-            type="button"
-            className="sync-btn"
-            onClick={handleSync}
-            disabled={syncing}
-          >
-            {syncing ? "Sincronizando…" : "↻ Sincronizar con Contabilium"}
-          </button>
-          {syncResult && <span className="sync-result">{syncResult}</span>}
+          <span className="sync-result">↻ Sincronización automática cada 30 minutos</span>
         </div>
       )}
 

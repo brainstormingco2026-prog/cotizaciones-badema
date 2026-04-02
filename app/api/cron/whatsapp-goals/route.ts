@@ -35,13 +35,13 @@ export async function GET(req: NextRequest) {
 
   const now = new Date();
   const year = now.getFullYear();
-  const month = now.getMonth(); // 0-indexed
+  const month = now.getMonth();
   const mesLabel = MES_LABELS[month];
 
   const [vendors, goals] = await Promise.all([
     prisma.user.findMany({
-      where: { role: "VENDEDOR", phone: { not: null } },
-      select: { id: true, name: true, phone: true, contabiliumId: true },
+      where: { role: "VENDEDOR", phone: { not: null }, callmebotApiKey: { not: null } },
+      select: { id: true, name: true, phone: true, callmebotApiKey: true, contabiliumId: true },
     }),
     prisma.salesGoal.findMany({
       where: { year },
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
   const errors: string[] = [];
 
   for (const vendor of vendors) {
-    if (!vendor.phone) continue;
+    if (!vendor.phone || !vendor.callmebotApiKey) continue;
 
     const monthlyTarget = goalMap.get(vendor.id) ?? null;
     const contabiliumId = vendor.contabiliumId;
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-      await sendWhatsApp(vendor.phone, message);
+      await sendWhatsApp(vendor.phone, message, vendor.callmebotApiKey);
       sent++;
     } catch (e) {
       errors.push(`${vendor.name}: ${e instanceof Error ? e.message : String(e)}`);

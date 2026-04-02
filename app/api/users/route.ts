@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const [users, rawIds] = await Promise.all([
     prisma.user.findMany({
       where: { role: "VENDEDOR" },
-      select: { id: true, name: true, email: true, contabiliumId: true, phone: true },
+      select: { id: true, name: true, email: true, contabiliumId: true, phone: true, callmebotApiKey: true },
       orderBy: { name: "asc" },
     }),
     prisma.quotation.findMany({
@@ -85,8 +85,8 @@ export async function PATCH(req: NextRequest) {
   if ("error" in auth) return Response.json({ error: auth.error }, { status: auth.status });
   if (auth.user.role !== "ADMIN") return Response.json({ error: "No autorizado" }, { status: 403 });
 
-  const { id, phone, name, contabiliumId } = await req.json() as {
-    id: string; phone?: string; name?: string; contabiliumId?: string;
+  const { id, phone, name, contabiliumId, callmebotApiKey } = await req.json() as {
+    id: string; phone?: string; name?: string; contabiliumId?: string; callmebotApiKey?: string;
   };
   if (!id) return Response.json({ error: "id requerido" }, { status: 400 });
 
@@ -94,11 +94,12 @@ export async function PATCH(req: NextRequest) {
   if (phone !== undefined) data.phone = phone?.trim() || null;
   if (name !== undefined) data.name = name.trim();
   if (contabiliumId !== undefined) data.contabiliumId = contabiliumId?.trim() || null;
+  if (callmebotApiKey !== undefined) data.callmebotApiKey = callmebotApiKey?.trim() || null;
 
   const user = await prisma.user.update({
     where: { id },
     data,
-    select: { id: true, name: true, email: true, contabiliumId: true, phone: true },
+    select: { id: true, name: true, email: true, contabiliumId: true, phone: true, callmebotApiKey: true },
   });
   return Response.json({ user });
 }

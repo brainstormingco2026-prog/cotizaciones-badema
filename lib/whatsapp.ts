@@ -1,44 +1,31 @@
 /**
- * Envía un mensaje de WhatsApp vía Twilio.
+ * Envía un mensaje de WhatsApp vía CallMeBot.
  *
- * Variables de entorno requeridas:
- *   TWILIO_ACCOUNT_SID     — Account SID (empieza con "AC")
- *   TWILIO_AUTH_TOKEN      — Auth Token
- *   TWILIO_WHATSAPP_FROM   — Número de origen en formato "whatsapp:+14155238886"
+ * Cada vendedor debe activar su número una sola vez:
+ * 1. Agregar +34 644 59 39 84 a sus contactos
+ * 2. Enviar el mensaje: "I allow callmebot to send me messages"
+ * 3. Recibirá su API key por WhatsApp
+ * 4. Cargar esa API key en el CRM (sección Vendedores)
  *
- * El número `to` debe incluir código de país (ej: +5491155556666).
+ * El número `to` debe estar en formato internacional con + (ej: +5493517604973).
+ * El `apiKey` es el key personal que CallMeBot le envió al vendedor.
  */
-export async function sendWhatsApp(to: string, message: string): Promise<void> {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_WHATSAPP_FROM;
-
-  if (!accountSid || !authToken || !from) {
-    throw new Error("WhatsApp no configurado: faltan variables TWILIO_*");
+export async function sendWhatsApp(to: string, message: string, apiKey: string): Promise<void> {
+  if (!apiKey) {
+    throw new Error("CallMeBot API key no configurada para este vendedor");
   }
 
   const phone = to.startsWith("+") ? to : `+${to.replace(/\D/g, "")}`;
 
-  const body = new URLSearchParams({
-    From: from,
-    To: `whatsapp:${phone}`,
-    Body: message,
-  });
+  const url = new URL("https://api.callmebot.com/whatsapp.php");
+  url.searchParams.set("phone", phone);
+  url.searchParams.set("text", message);
+  url.searchParams.set("apikey", apiKey);
 
-  const res = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body,
-    }
-  );
+  const res = await fetch(url.toString());
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Twilio error ${res.status}: ${err}`);
+    throw new Error(`CallMeBot error ${res.status}: ${err}`);
   }
 }

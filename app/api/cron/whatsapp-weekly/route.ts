@@ -21,13 +21,11 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date();
-  // Lunes de la semana actual
   const day = now.getUTCDay();
   const diffToMonday = day === 0 ? -6 : 1 - day;
   const monday = new Date(now);
   monday.setUTCDate(now.getUTCDate() + diffToMonday);
   monday.setUTCHours(0, 0, 0, 0);
-  // Viernes
   const friday = new Date(monday);
   friday.setUTCDate(monday.getUTCDate() + 4);
   friday.setUTCHours(23, 59, 59, 999);
@@ -42,7 +40,7 @@ export async function GET(req: NextRequest) {
       importeTotalNeto: true,
       nextFollowUpAt: true,
       client: { select: { name: true } },
-      assignedTo: { select: { id: true, name: true, phone: true } },
+      assignedTo: { select: { id: true, name: true, phone: true, callmebotApiKey: true } },
     },
     orderBy: { nextFollowUpAt: "asc" },
   });
@@ -51,20 +49,18 @@ export async function GET(req: NextRequest) {
     return Response.json({ sent: 0, message: "Sin seguimientos esta semana" });
   }
 
-  // Agrupar por vendedor
-  const byVendor = new Map<string, { name: string; phone: string; items: typeof followUps }>();
+  const byVendor = new Map<string, { name: string; phone: string; apiKey: string; items: typeof followUps }>();
   for (const f of followUps) {
-    if (!f.assignedTo?.phone) continue;
+    if (!f.assignedTo?.phone || !f.assignedTo?.callmebotApiKey) continue;
     const key = f.assignedTo.id;
     if (!byVendor.has(key)) {
-      byVendor.set(key, { name: f.assignedTo.name, phone: f.assignedTo.phone, items: [] });
+      byVendor.set(key, { name: f.assignedTo.name, phone: f.assignedTo.phone, apiKey: f.assignedTo.callmebotApiKey, items: [] });
     }
     byVendor.get(key)!.items.push(f);
   }
 
   let sent = 0;
   const errors: string[] = [];
-
   const weekLabel = `${monday.toLocaleDateString("es-AR")} al ${friday.toLocaleDateString("es-AR")}`;
 
   for (const [, vendor] of byVendor) {
@@ -81,7 +77,7 @@ export async function GET(req: NextRequest) {
       `\n\n_${vendor.items.length} cotización${vendor.items.length !== 1 ? "es" : ""} para esta semana._`;
 
     try {
-      await sendWhatsApp(vendor.phone, message);
+      await sendWhatsApp(vendor.phone, message, vendor.apiKey);
       sent++;
     } catch (e) {
       errors.push(`${vendor.name}: ${e instanceof Error ? e.message : String(e)}`);

@@ -24,7 +24,6 @@ export async function GET(req: NextRequest) {
   const endOfDay = new Date(now);
   endOfDay.setUTCHours(23, 59, 59, 999);
 
-  // Cotizaciones con seguimiento hoy (estados abiertos)
   const followUps = await prisma.quotation.findMany({
     where: {
       nextFollowUpAt: { gte: startOfDay, lte: endOfDay },
@@ -34,8 +33,7 @@ export async function GET(req: NextRequest) {
       externalId: true,
       importeTotalNeto: true,
       client: { select: { name: true } },
-      assignedTo: { select: { id: true, name: true, phone: true } },
-      idVendedor: true,
+      assignedTo: { select: { id: true, name: true, phone: true, callmebotApiKey: true } },
     },
   });
 
@@ -43,13 +41,12 @@ export async function GET(req: NextRequest) {
     return Response.json({ sent: 0, message: "Sin seguimientos para hoy" });
   }
 
-  // Agrupar por vendedor (assignedTo)
-  const byVendor = new Map<string, { name: string; phone: string; items: typeof followUps }>();
+  const byVendor = new Map<string, { name: string; phone: string; apiKey: string; items: typeof followUps }>();
   for (const f of followUps) {
-    if (!f.assignedTo?.phone) continue;
+    if (!f.assignedTo?.phone || !f.assignedTo?.callmebotApiKey) continue;
     const key = f.assignedTo.id;
     if (!byVendor.has(key)) {
-      byVendor.set(key, { name: f.assignedTo.name, phone: f.assignedTo.phone, items: [] });
+      byVendor.set(key, { name: f.assignedTo.name, phone: f.assignedTo.phone, apiKey: f.assignedTo.callmebotApiKey, items: [] });
     }
     byVendor.get(key)!.items.push(f);
   }
@@ -67,7 +64,7 @@ export async function GET(req: NextRequest) {
       `\n\n_${vendor.items.length} cotización${vendor.items.length !== 1 ? "es" : ""} para contactar hoy._`;
 
     try {
-      await sendWhatsApp(vendor.phone, message);
+      await sendWhatsApp(vendor.phone, message, vendor.apiKey);
       sent++;
     } catch (e) {
       errors.push(`${vendor.name}: ${e instanceof Error ? e.message : String(e)}`);

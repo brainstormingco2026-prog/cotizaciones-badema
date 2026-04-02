@@ -15,12 +15,15 @@ type VendorRow = {
   email: string;
   contabiliumId: string | null;
   phone: string | null;
+  callmebotApiKey: string | null;
   target: string;
   saving: boolean;
   saved: boolean;
   error: string;
   editingPhone: boolean;
   phoneInput: string;
+  editingApiKey: boolean;
+  apiKeyInput: string;
 };
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -62,18 +65,21 @@ export default function VendedoresAdminPage() {
         (goalsData.progress ?? []).map((g: { userId: string; monthlyTarget: number | null }) => [g.userId, g.monthlyTarget])
       );
       setRows(
-        (usersData.users ?? []).map((v: { id: string; name: string; email: string; contabiliumId: string | null; phone: string | null }) => ({
+        (usersData.users ?? []).map((v: { id: string; name: string; email: string; contabiliumId: string | null; phone: string | null; callmebotApiKey: string | null }) => ({
           id: v.id,
           name: v.name,
           email: v.email,
           contabiliumId: v.contabiliumId,
           phone: v.phone,
+          callmebotApiKey: v.callmebotApiKey,
           target: goalMap.has(v.id) && goalMap.get(v.id) != null ? String(goalMap.get(v.id)) : "",
           saving: false,
           saved: false,
           error: "",
           editingPhone: false,
           phoneInput: v.phone ?? "",
+          editingApiKey: false,
+          apiKeyInput: v.callmebotApiKey ?? "",
         }))
       );
     }).finally(() => setLoading(false));
@@ -102,6 +108,28 @@ export default function VendedoresAdminPage() {
         updateRow(id, { error: data.error ?? "Error al guardar" });
       } else {
         updateRow(id, { saved: true });
+        setTimeout(() => updateRow(id, { saved: false }), 2000);
+      }
+    } finally {
+      updateRow(id, { saving: false });
+    }
+  }
+
+  async function saveApiKey(id: string) {
+    const row = rows.find((r) => r.id === id);
+    if (!row) return;
+    updateRow(id, { saving: true, error: "" });
+    try {
+      const res = await fetch("/api/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
+        body: JSON.stringify({ id, callmebotApiKey: row.apiKeyInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        updateRow(id, { error: data.error ?? "Error al guardar" });
+      } else {
+        updateRow(id, { callmebotApiKey: data.user.callmebotApiKey, editingApiKey: false, saved: true });
         setTimeout(() => updateRow(id, { saved: false }), 2000);
       }
     } finally {
@@ -143,7 +171,7 @@ export default function VendedoresAdminPage() {
 
       <section className="admin-section">
         <h3>Vendedores — {CURRENT_YEAR}</h3>
-        <p className="admin-hint">Hacé click en el teléfono para editarlo. El objetivo mensual es el monto en pesos por mes.</p>
+        <p className="admin-hint">Hacé click en cada campo para editarlo. Para activar CallMeBot: agregá +34 644 59 39 84 a contactos y enviá "I allow callmebot to send me messages" — recibirás tu API key por WhatsApp.</p>
         {loading ? (
           <p className="muted">Cargando…</p>
         ) : rows.length === 0 ? (
@@ -155,6 +183,7 @@ export default function VendedoresAdminPage() {
                 <th>Nombre</th>
                 <th>Email</th>
                 <th>WhatsApp</th>
+                <th>API Key CallMeBot</th>
                 <th>ID Contabilium</th>
                 <th>Objetivo mensual ($)</th>
                 <th></th>
@@ -193,6 +222,31 @@ export default function VendedoresAdminPage() {
                       <span className="editable-value">{row.phone ?? <span className="muted">— click para agregar</span>}</span>
                     )}
                     {row.error && <span className="goal-inline-error">{row.error}</span>}
+                  </td>
+                  <td data-label="API Key CallMeBot" className="col-editable" onClick={() => !row.editingApiKey && updateRow(row.id, { editingApiKey: true, apiKeyInput: row.callmebotApiKey ?? "" })}>
+                    {row.editingApiKey ? (
+                      <div className="phone-edit-row">
+                        <input
+                          type="text"
+                          className="inline-input"
+                          value={row.apiKeyInput}
+                          placeholder="ej. 1234567"
+                          onChange={(e) => updateRow(row.id, { apiKeyInput: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveApiKey(row.id);
+                            if (e.key === "Escape") updateRow(row.id, { editingApiKey: false });
+                          }}
+                          autoFocus
+                        />
+                        <button type="button" className="goal-save-btn" onClick={() => saveApiKey(row.id)} disabled={row.saving}>
+                          {row.saving ? "…" : "✓"}
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="editable-value">
+                        {row.callmebotApiKey ? "••••••••" : <span className="muted">— click para agregar</span>}
+                      </span>
+                    )}
                   </td>
                   <td data-label="ID Contabilium">{row.contabiliumId ?? <span className="muted">—</span>}</td>
                   <td data-label="Objetivo ($)">

@@ -171,7 +171,7 @@ export default function VendedoresAdminPage() {
 
       <section className="admin-section">
         <h3>Vendedores — {CURRENT_YEAR}</h3>
-        <p className="admin-hint">Hacé click en cada campo para editarlo. Para activar CallMeBot: agregá +34 644 59 39 84 a contactos y enviá "I allow callmebot to send me messages" — recibirás tu API key por WhatsApp.</p>
+        <p className="admin-hint">Hacé click en cada campo para editarlo. Para activar CallMeBot: hacé click en <a href={`https://wa.me/34644527488?text=${encodeURIComponent("I allow callmebot to send me messages")}`} target="_blank" rel="noopener noreferrer">+34 644 52 74 88</a> y enviá el mensaje que se pre-completa — recibirás tu API key por WhatsApp.</p>
         {loading ? (
           <p className="muted">Cargando…</p>
         ) : rows.length === 0 ? (

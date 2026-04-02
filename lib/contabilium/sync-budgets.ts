@@ -152,6 +152,14 @@ export async function syncBudgetsFromContabilium(): Promise<{
     data: { status: "running", message: `Sync budgets: ${allItems.length} items` },
   });
 
+  // Pre-fetch en bulk para evitar N+1 queries
+  const [existingQuotations, existingClients] = await Promise.all([
+    prisma.quotation.findMany({ select: { id: true, externalId: true, fechaEmision: true } }),
+    prisma.client.findMany({ where: { externalId: { not: null } }, select: { id: true, externalId: true } }),
+  ]);
+  const quotationMap = new Map(existingQuotations.map((q) => [q.externalId, q]));
+  const clientMap = new Map(existingClients.map((c) => [c.externalId!, c]));
+
   for (const item of allItems) {
     try {
       const externalId = String(item.budgetId);
@@ -159,8 +167,8 @@ export async function syncBudgetsFromContabilium(): Promise<{
       const clientName = item.person?.socialReason ?? "Sin nombre";
       const clientExternalId = String(item.personId);
 
-      // Upsert cliente
-      let client = await prisma.client.findFirst({ where: { externalId: clientExternalId } });
+      // Upsert cliente usando el mapa local (sin query extra)
+      let client = clientMap.get(clientExternalId);
       if (!client) {
         client = await prisma.client.create({
           data: {
@@ -168,22 +176,19 @@ export async function syncBudgetsFromContabilium(): Promise<{
             name: clientName,
             email: item.person?.email ?? null,
           },
+          select: { id: true, externalId: true },
         });
+        clientMap.set(clientExternalId, client);
       } else if (clientName && clientName !== "Sin nombre") {
-        client = await prisma.client.update({
-          where: { id: client.id },
-          data: { name: clientName },
-        });
+        await prisma.client.update({ where: { id: client.id }, data: { name: clientName } });
       }
 
       const fechaEmisionFromContabilium = item.createdAt ? new Date(item.createdAt) : null;
       const idVendedor = item.sellerId ? String(item.sellerId) : null;
       const closedState = state === "aceptada" || state === "rechazada" || state === "facturada";
+      const existing = quotationMap.get(externalId);
 
-      const existing = await prisma.quotation.findUnique({ where: { externalId } });
-
-      // Si ya existe el registro y tiene fechaEmision, no pisarla con la de Contabilium
-      // (Contabilium corrompe createdAt al hacer PUT, actualizándolo a "ahora")
+      // Preservar fechaEmision del CRM si ya existe
       const fechaEmision = existing?.fechaEmision ?? fechaEmisionFromContabilium;
 
       const payload = {
@@ -204,7 +209,8 @@ export async function syncBudgetsFromContabilium(): Promise<{
         await prisma.quotation.update({ where: { id: existing.id }, data: payload });
         updated++;
       } else {
-        await prisma.quotation.create({ data: payload });
+        const newQ = await prisma.quotation.create({ data: payload, select: { id: true, externalId: true, fechaEmision: true } });
+        quotationMap.set(externalId, newQ);
         created++;
       }
     } catch (e) {

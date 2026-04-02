@@ -288,7 +288,15 @@ export default function PanelControlPage() {
 
       {isAdmin && (
         <div className="sync-bar">
-          <span className="sync-result">↻ Sincronización automática cada 30 minutos</span>
+          <span className="sync-result">
+            {(() => {
+              const now = new Date();
+              const minutos = now.getMinutes();
+              const resta = minutos < 30 ? 30 - minutos : 60 - minutos;
+              const proxima = new Date(now.getTime() + resta * 60 * 1000);
+              return `↻ Próxima sincronización: ${proxima.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`;
+            })()}
+          </span>
         </div>
       )}
 

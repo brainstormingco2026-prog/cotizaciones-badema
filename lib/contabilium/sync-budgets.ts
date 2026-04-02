@@ -155,66 +155,76 @@ export async function syncBudgetsFromContabilium(): Promise<{
   // Pre-fetch en bulk para evitar N+1 queries
   const [existingQuotations, existingClients] = await Promise.all([
     prisma.quotation.findMany({ select: { id: true, externalId: true, fechaEmision: true } }),
-    prisma.client.findMany({ where: { externalId: { not: null } }, select: { id: true, externalId: true } }),
+    prisma.client.findMany({ where: { externalId: { not: null } }, select: { id: true, externalId: true, name: true } }),
   ]);
   const quotationMap = new Map(existingQuotations.map((q) => [q.externalId, q]));
   const clientMap = new Map(existingClients.map((c) => [c.externalId!, c]));
 
-  for (const item of allItems) {
+  // Preparar clientes nuevos (crear primero, son pocos)
+  const newClientExternalIds = [...new Set(
+    allItems.map((i) => String(i.personId)).filter((id) => !clientMap.has(id))
+  )];
+  for (const extId of newClientExternalIds) {
+    const item = allItems.find((i) => String(i.personId) === extId)!;
     try {
-      const externalId = String(item.budgetId);
-      const state = STATUS_MAP[item.status] ?? "borrador";
-      const clientName = item.person?.socialReason ?? "Sin nombre";
-      const clientExternalId = String(item.personId);
+      const client = await prisma.client.create({
+        data: {
+          externalId: extId,
+          name: item.person?.socialReason ?? "Sin nombre",
+          email: item.person?.email ?? null,
+        },
+        select: { id: true, externalId: true, name: true },
+      });
+      clientMap.set(extId, client);
+    } catch { /* ya existe por race condition — ignorar */ }
+  }
 
-      // Upsert cliente usando el mapa local (sin query extra)
-      let client = clientMap.get(clientExternalId);
-      if (!client) {
-        client = await prisma.client.create({
-          data: {
-            externalId: clientExternalId,
-            name: clientName,
-            email: item.person?.email ?? null,
-          },
-          select: { id: true, externalId: true },
-        });
-        clientMap.set(clientExternalId, client);
-      } else if (clientName && clientName !== "Sin nombre") {
-        await prisma.client.update({ where: { id: client.id }, data: { name: clientName } });
-      }
+  // Construir todas las operaciones de upsert de cotizaciones
+  const now = new Date();
+  const upsertOps = allItems.map((item) => {
+    const externalId = String(item.budgetId);
+    const state = STATUS_MAP[item.status] ?? "borrador";
+    const clientExternalId = String(item.personId);
+    const client = clientMap.get(clientExternalId);
+    if (!client) return null;
 
-      const fechaEmisionFromContabilium = item.createdAt ? new Date(item.createdAt) : null;
-      const idVendedor = item.sellerId ? String(item.sellerId) : null;
-      const closedState = state === "aceptada" || state === "rechazada" || state === "facturada";
-      const existing = quotationMap.get(externalId);
+    const fechaEmisionFromContabilium = item.createdAt ? new Date(item.createdAt) : null;
+    const existing = quotationMap.get(externalId);
+    const fechaEmision = existing?.fechaEmision ?? fechaEmisionFromContabilium;
+    const idVendedor = item.sellerId ? String(item.sellerId) : null;
+    const closedState = state === "aceptada" || state === "rechazada" || state === "facturada";
 
-      // Preservar fechaEmision del CRM si ya existe
-      const fechaEmision = existing?.fechaEmision ?? fechaEmisionFromContabilium;
+    const payload = {
+      externalId,
+      state,
+      clientId: client.id,
+      rawData: JSON.stringify(item),
+      lastSyncedAt: now,
+      fechaEmision,
+      numero: item.number ?? null,
+      importeTotalNeto: formatAmount(item.totalNetAmount),
+      observaciones: item.observations ?? null,
+      idVendedor,
+      ...(closedState ? { followUpFreq: null, nextFollowUpAt: null } : {}),
+    };
 
-      const payload = {
-        externalId,
-        state,
-        clientId: client.id,
-        rawData: JSON.stringify(item),
-        lastSyncedAt: new Date(),
-        fechaEmision,
-        numero: item.number ?? null,
-        importeTotalNeto: formatAmount(item.totalNetAmount),
-        observaciones: item.observations ?? null,
-        idVendedor,
-        ...(closedState ? { followUpFreq: null, nextFollowUpAt: null } : {}),
-      };
+    const isNew = !existing;
+    if (isNew) created++; else updated++;
 
-      if (existing) {
-        await prisma.quotation.update({ where: { id: existing.id }, data: payload });
-        updated++;
-      } else {
-        const newQ = await prisma.quotation.create({ data: payload, select: { id: true, externalId: true, fechaEmision: true } });
-        quotationMap.set(externalId, newQ);
-        created++;
-      }
+    return prisma.quotation.upsert({
+      where: { externalId },
+      create: payload,
+      update: payload,
+    });
+  }).filter(Boolean) as ReturnType<typeof prisma.quotation.upsert>[];
+
+  // Ejecutar en batches de 50 dentro de transacciones
+  const BATCH = 50;
+  for (let i = 0; i < upsertOps.length; i += BATCH) {
+    try {
+      await prisma.$transaction(upsertOps.slice(i, i + BATCH));
     } catch (e) {
-      errors.push(`Budget ${item.budgetId}: ${e instanceof Error ? e.message : String(e)}`);
+      errors.push(`Batch ${i}-${i + BATCH}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 

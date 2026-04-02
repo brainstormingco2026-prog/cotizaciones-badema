@@ -176,9 +176,15 @@ export async function syncBudgetsFromContabilium(): Promise<{
         });
       }
 
-      const fechaEmision = item.createdAt ? new Date(item.createdAt) : null;
+      const fechaEmisionFromContabilium = item.createdAt ? new Date(item.createdAt) : null;
       const idVendedor = item.sellerId ? String(item.sellerId) : null;
       const closedState = state === "aceptada" || state === "rechazada" || state === "facturada";
+
+      const existing = await prisma.quotation.findUnique({ where: { externalId } });
+
+      // Si ya existe el registro y tiene fechaEmision, no pisarla con la de Contabilium
+      // (Contabilium corrompe createdAt al hacer PUT, actualizándolo a "ahora")
+      const fechaEmision = existing?.fechaEmision ?? fechaEmisionFromContabilium;
 
       const payload = {
         externalId,
@@ -194,7 +200,6 @@ export async function syncBudgetsFromContabilium(): Promise<{
         ...(closedState ? { followUpFreq: null, nextFollowUpAt: null } : {}),
       };
 
-      const existing = await prisma.quotation.findUnique({ where: { externalId } });
       if (existing) {
         await prisma.quotation.update({ where: { id: existing.id }, data: payload });
         updated++;

@@ -4,7 +4,6 @@ import { prisma } from "@/lib/db";
 import { getInternalToken } from "@/lib/contabilium/sync-budgets";
 
 export async function GET(req: NextRequest) {
-
   const externalId = req.nextUrl.searchParams.get("id");
   if (!externalId) return Response.json({ error: "Falta ?id=" }, { status: 400 });
 
@@ -33,32 +32,50 @@ export async function GET(req: NextRequest) {
   });
 }
 
-// Obtiene el presupuesto completo desde Contabilium (para ver qué devuelve el GET /api/budgets/{id})
+// Hace el PUT real a Contabilium y devuelve el payload enviado + respuesta completa
 export async function POST(req: NextRequest) {
-
-  const { externalId } = await req.json();
-  if (!externalId) return Response.json({ error: "Falta externalId" }, { status: 400 });
+  const { externalId, newStatus } = await req.json();
+  if (!externalId || !newStatus) return Response.json({ error: "Falta externalId o newStatus" }, { status: 400 });
 
   const token = await getInternalToken();
   if (!token) return Response.json({ error: "Sin token" }, { status: 500 });
 
-  // Obtener el presupuesto completo con items
-  const res = await fetch(`https://internalapi.contabilium.com/api/budgets/${externalId}`, {
+  // GET completo del presupuesto
+  const getRes = await fetch(`https://internalapi.contabilium.com/api/budgets/${externalId}`, {
     headers: { Authorization: `Bearer ${token}`, Accept: "application/json", Origin: "https://app.contabilium.com", Referer: "https://app.contabilium.com/" },
   });
+  const full = await getRes.json() as Record<string, unknown>;
 
-  let full: unknown;
-  try { full = await res.json(); } catch { full = await res.text().catch(() => null); }
+  // Mismo formato que la web de Contabilium
+  function toDate(v: unknown) {
+    if (typeof v !== "string" || !v) return "";
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(v)) return v;
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return v;
+    return `${String(d.getUTCDate()).padStart(2,"0")}/${String(d.getUTCMonth()+1).padStart(2,"0")}/${d.getUTCFullYear()}`;
+  }
 
-  // Agregar anotaciones de tipo para cada campo del primer item
-  const fullObj = full as Record<string, unknown>;
-  const item0 = Array.isArray(fullObj?.items) ? (fullObj.items as Record<string,unknown>[])[0] : null;
-  const item0WithTypes = item0 ? Object.fromEntries(
-    Object.entries(item0).map(([k, v]) => [k, { value: v, type: typeof v, isNull: v === null }])
-  ) : null;
-  const topWithTypes = Object.fromEntries(
-    Object.entries(fullObj ?? {}).filter(([k]) => k !== "items").map(([k, v]) => [k, { value: v, type: typeof v, isNull: v === null }])
-  );
+  const rawItems = Array.isArray(full.items) ? (full.items as Record<string,unknown>[]) : [];
+  const items = rawItems.map(item => {
+    const conceptObj = item.concept as Record<string,unknown> | null;
+    return { code: conceptObj?.code ?? "", total: item.total, concept: item.description ?? "", unitPrice: item.unitPrice, iva: item.iva, bonus: item.bonus, conceptId: item.conceptId, ivaRateId: item.ivaRateId };
+  });
 
-  return Response.json({ status: res.status, topLevel: topWithTypes, item0WithTypes, itemsCount: Array.isArray(fullObj?.items) ? (fullObj.items as unknown[]).length : 0 });
+  const payload = {
+    personId: full.personId, name: "", createdAt: toDate(full.createdAt), dateValidity: toDate(full.dateValidity),
+    status: newStatus, currencyId: full.currencyId, exchangeRate: full.exchangeRate, items,
+    observations: full.observations ?? "", saleConditionId: full.saleConditionId,
+    sellerId: full.sellerId != null ? Number(full.sellerId) : null, type: full.type,
+  };
+
+  const putRes = await fetch(`https://internalapi.contabilium.com/api/budgets/${externalId}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json", Origin: "https://app.contabilium.com", Referer: "https://app.contabilium.com/" },
+    body: JSON.stringify(payload),
+  });
+
+  let putBody: unknown;
+  try { putBody = await putRes.json(); } catch { putBody = await putRes.text().catch(() => null); }
+
+  return Response.json({ putStatus: putRes.status, putBody, payloadSent: payload });
 }

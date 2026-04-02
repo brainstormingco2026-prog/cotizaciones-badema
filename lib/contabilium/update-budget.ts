@@ -20,67 +20,56 @@ const STATE_TO_STATUS: Record<string, string> = {
   facturada: "F",
 };
 
-/** Campos de solo lectura que Contabilium no acepta en el PUT */
-const TOP_LEVEL_READONLY = [
-  "seller",
-  "person",
-  "saleCondition",
-  "userRegister",
-  "userModifies",
-  "currencyCode",
-  "currencyDescription",
-  "receiptInSecondaryCurrency",
-  "iva",
-  "totalNetAmount",
-  "grossTotalAmount",
-  "netoGravado",
-  "noGravado",
-  "total",
-  "number",
-  "meta",
-];
-
-/** Campos a eliminar de cada item antes del PUT.
- *  - concept: viene parcial del GET (solo code+stock), causa TYPE_ERROR. conceptId es suficiente.
- *  - subtotal/netoGravado/noGravado: campos computados no aceptados.
- *  - total e iva SÍ son requeridos por Contabilium.
- */
-const ITEM_READONLY = ["concept", "subtotal", "netoGravado", "noGravado"];
-
-/**
- * Convierte una fecha al formato d/m/Y que requiere el PUT de Contabilium.
- * Si ya está en ese formato, la devuelve tal cual.
- */
-function toContabiliumDate(value: unknown): unknown {
-  if (typeof value !== "string" || !value) return value;
+function toContabiliumDate(value: unknown): string {
+  if (typeof value !== "string" || !value) return "";
   if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(value)) return value;
   const d = new Date(value);
   if (isNaN(d.getTime())) return value;
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const year = d.getUTCFullYear();
-  return `${day}/${month}/${year}`;
+  return `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${d.getUTCFullYear()}`;
 }
 
-function buildPayload(fullBudget: Record<string, unknown>, newStatus: string): Record<string, unknown> {
-  const payload: Record<string, unknown> = { ...fullBudget, status: newStatus };
+/**
+ * Construye el payload exacto que la web de Contabilium envía en el PUT /api/budgets/{id}.
+ * Formato capturado inspeccionando los requests del propio Contabilium:
+ * - sellerId como número
+ * - items con concept como string (descripción), code al nivel del item
+ * - sin budgetId, userId, campos de solo lectura
+ */
+function buildPayload(fullBudget: Record<string, unknown>, newStatus: string, fechaEmision?: Date | null): Record<string, unknown> {
+  const rawItems = Array.isArray(fullBudget.items)
+    ? (fullBudget.items as Record<string, unknown>[])
+    : [];
 
-  for (const field of TOP_LEVEL_READONLY) {
-    delete payload[field];
-  }
+  const items = rawItems.map((item) => {
+    const conceptObj = item.concept as Record<string, unknown> | null;
+    return {
+      code: conceptObj?.code ?? "",
+      total: item.total,
+      concept: item.description ?? "",   // "concept" en el PUT es la descripción (string)
+      unitPrice: item.unitPrice,
+      iva: item.iva,
+      bonus: item.bonus,
+      conceptId: item.conceptId,
+      ivaRateId: item.ivaRateId,
+    };
+  });
 
-  if (payload.createdAt != null) payload.createdAt = toContabiliumDate(payload.createdAt);
-  if (payload.dateValidity != null) payload.dateValidity = toContabiliumDate(payload.dateValidity);
-
-  if (Array.isArray(payload.items)) {
-    payload.items = (payload.items as Record<string, unknown>[]).map((item) => {
-      const clean = { ...item };
-      for (const f of ITEM_READONLY) delete clean[f];
-      return clean;
-    });
-  }
-
-  return payload;
+  return {
+    personId: fullBudget.personId,
+    name: "",
+    createdAt: fechaEmision
+      ? toContabiliumDate(fechaEmision.toISOString())
+      : toContabiliumDate(fullBudget.createdAt),
+    dateValidity: toContabiliumDate(fullBudget.dateValidity),
+    status: newStatus,
+    currencyId: fullBudget.currencyId,
+    exchangeRate: fullBudget.exchangeRate,
+    items,
+    observations: fullBudget.observations ?? "",
+    saleConditionId: fullBudget.saleConditionId,
+    sellerId: fullBudget.sellerId != null ? Number(fullBudget.sellerId) : null,
+    type: fullBudget.type,
+  };
 }
 
 async function fetchFullBudget(token: string, budgetId: string): Promise<Record<string, unknown> | null> {
@@ -117,11 +106,20 @@ export type UpdateBudgetResult =
   | { success: true }
   | { success: false; error: string; detail?: unknown };
 
+/** Estados que NO se sincronizan con Contabilium porque tienen efectos secundarios
+ *  (aceptada genera comprobante, facturada se maneja desde Contabilium directamente) */
+const STATES_NO_SYNC = new Set(["aceptada", "facturada"]);
+
 export async function updateBudgetStatus(
   externalId: string,
   _rawDataJson: string,
-  newState: string
+  newState: string,
+  fechaEmision?: Date | null,
 ): Promise<UpdateBudgetResult> {
+  if (STATES_NO_SYNC.has(newState)) {
+    return { success: true }; // solo se actualiza en CRM
+  }
+
   const status = STATE_TO_STATUS[newState];
   if (!status) {
     return { success: false, error: `Estado inválido: ${newState}` };
@@ -149,7 +147,7 @@ export async function updateBudgetStatus(
     }
   }
 
-  const payload = buildPayload(fullBudget, status);
+  const payload = buildPayload(fullBudget, status, fechaEmision);
 
   let result = await doPut(token, externalId, payload);
 

@@ -84,7 +84,8 @@ export async function PATCH(
       const contabiliumResult = await updateBudgetStatus(
         quotation.externalId,
         quotation.rawData,
-        parsed.data.state
+        parsed.data.state,
+        quotation.fechaEmision,
       );
       if (!contabiliumResult.success) {
         contabiliumWarning = contabiliumResult.error;

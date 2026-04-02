@@ -35,7 +35,19 @@ function toContabiliumDate(value: unknown): string {
  * - items con concept como string (descripción), code al nivel del item
  * - sin budgetId, userId, campos de solo lectura
  */
-function buildPayload(fullBudget: Record<string, unknown>, newStatus: string, fechaEmision?: Date | null): Record<string, unknown> {
+const MOTIVO_LABELS: Record<string, string> = {
+  PRECIO: "Precio",
+  PLAZO_EXCESIVO: "Plazo excesivo",
+  BAJA: "Baja",
+  COMPETENCIA: "Competencia",
+};
+
+function buildPayload(
+  fullBudget: Record<string, unknown>,
+  newStatus: string,
+  fechaEmision?: Date | null,
+  motivoRechazo?: string | null,
+): Record<string, unknown> {
   const rawItems = Array.isArray(fullBudget.items)
     ? (fullBudget.items as Record<string, unknown>[])
     : [];
@@ -65,7 +77,9 @@ function buildPayload(fullBudget: Record<string, unknown>, newStatus: string, fe
     currencyId: fullBudget.currencyId,
     exchangeRate: fullBudget.exchangeRate,
     items,
-    observations: fullBudget.observations ?? "",
+    observations: motivoRechazo
+      ? `Motivo de rechazo: ${MOTIVO_LABELS[motivoRechazo] ?? motivoRechazo}${fullBudget.observations ? `\n${fullBudget.observations}` : ""}`
+      : (fullBudget.observations ?? ""),
     saleConditionId: fullBudget.saleConditionId,
     sellerId: fullBudget.sellerId != null ? Number(fullBudget.sellerId) : null,
     type: fullBudget.type,
@@ -115,6 +129,7 @@ export async function updateBudgetStatus(
   _rawDataJson: string,
   newState: string,
   fechaEmision?: Date | null,
+  motivoRechazo?: string | null,
 ): Promise<UpdateBudgetResult> {
   if (STATES_NO_SYNC.has(newState)) {
     return { success: true }; // solo se actualiza en CRM
@@ -147,7 +162,7 @@ export async function updateBudgetStatus(
     }
   }
 
-  const payload = buildPayload(fullBudget, status, fechaEmision);
+  const payload = buildPayload(fullBudget, status, fechaEmision, motivoRechazo);
 
   let result = await doPut(token, externalId, payload);
 

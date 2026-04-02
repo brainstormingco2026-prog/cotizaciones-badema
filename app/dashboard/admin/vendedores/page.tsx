@@ -165,7 +165,7 @@ export default function VendedoresAdminPage() {
                 <tr key={row.id}>
                   <td data-label="Nombre">{row.name}</td>
                   <td data-label="Email">{row.email}</td>
-                  <td data-label="WhatsApp" className="col-editable" onClick={() => !row.editingPhone && updateRow(row.id, { editingPhone: true, phoneInput: row.phone ?? "" })}>
+                  <td data-label="WhatsApp" className="col-editable" onClick={() => !row.editingPhone && updateRow(row.id, { editingPhone: true, phoneInput: formatArgentinePhone(row.phone ?? "") || "" })}>
                     {row.editingPhone ? (
                       <div className="phone-edit-row">
                         <input
@@ -173,10 +173,11 @@ export default function VendedoresAdminPage() {
                           className="inline-input"
                           value={row.phoneInput}
                           placeholder="ej. 3517604973"
-                          onChange={(e) => updateRow(row.id, { phoneInput: e.target.value })}
-                          onBlur={(e) => {
-                            const formatted = formatArgentinePhone(e.target.value);
-                            if (formatted) updateRow(row.id, { phoneInput: formatted });
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            const digits = raw.replace(/\D/g, "");
+                            const value = digits.length >= 10 ? formatArgentinePhone(raw) : raw;
+                            updateRow(row.id, { phoneInput: value });
                           }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") savePhone(row.id);

@@ -81,15 +81,39 @@ export async function PATCH(
     }
     // Intentar push a Contabilium (best effort — no bloquea el guardado en CRM)
     if (quotation.rawData) {
+      const motivoParaContabilium =
+        parsed.data.state === "rechazada"
+          ? (parsed.data.motivoRechazo ?? quotation.motivoRechazo)
+          : null;
       const contabiliumResult = await updateBudgetStatus(
         quotation.externalId,
         quotation.rawData,
         parsed.data.state,
         quotation.fechaEmision,
+        motivoParaContabilium,
       );
       if (!contabiliumResult.success) {
         contabiliumWarning = contabiliumResult.error;
       }
+    }
+  }
+
+  // Si solo cambia el motivoRechazo (sin cambio de estado) y ya está rechazada → también sincronizar
+  if (
+    parsed.data.motivoRechazo !== undefined &&
+    !parsed.data.state &&
+    quotation.state === "rechazada" &&
+    quotation.rawData
+  ) {
+    const contabiliumResult = await updateBudgetStatus(
+      quotation.externalId,
+      quotation.rawData,
+      quotation.state,
+      quotation.fechaEmision,
+      parsed.data.motivoRechazo,
+    );
+    if (!contabiliumResult.success) {
+      contabiliumWarning = contabiliumResult.error;
     }
   }
 

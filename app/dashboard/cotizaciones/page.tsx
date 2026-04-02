@@ -255,7 +255,7 @@ export default function CotizacionesPage() {
                   <td data-label="ID" className="col-id">#{q.externalId}</td>
                   <td data-label="Fecha emisión" className="col-hide-mobile">{q.fechaEmision ? new Date(q.fechaEmision).toLocaleDateString("es-AR") : "—"}</td>
                   <td data-label="Número" className="col-hide-mobile">{q.numero ?? "—"}</td>
-                  <td data-label="Importe neto" className="col-importe">{q.importeTotalNeto ?? "—"}</td>
+                  <td data-label="Importe neto" className="col-importe">{q.importeTotalNeto ? `$${q.importeTotalNeto}` : "—"}</td>
                   <td data-label="Estado" className="col-editable" onClick={(e) => { e.stopPropagation(); startEdit(q, "state"); }}>
                     {editing?.id === q.id && editing.field === "state" ? (
                       <select

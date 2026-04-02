@@ -269,7 +269,7 @@ export default function PanelControlPage() {
                   <p className="muted">Sin cotizaciones.</p>
                 ) : (
                   <ul className="vendor-modal-list">
-                    {vendorQuotations.slice(0, 10).map((q) => (
+                    {vendorQuotations.slice(0, 20).map((q) => (
                       <li key={q.id}>
                         <Link href={`/dashboard/cotizaciones/${q.id}`} onClick={() => setVendorModal(null)} className="vendor-modal-item">
                           <span className={`cotizacion-state state-${q.state}`}>{STATE_LABELS_MODAL[q.state] ?? q.state}</span>

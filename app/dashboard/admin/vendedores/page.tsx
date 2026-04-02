@@ -19,7 +19,8 @@ type VendorRow = {
   target: string;
   saving: boolean;
   saved: boolean;
-  error: string;
+  goalError: string;
+  phoneError: string;
   editingPhone: boolean;
   phoneInput: string;
   editingApiKey: boolean;
@@ -75,7 +76,8 @@ export default function VendedoresAdminPage() {
           target: goalMap.has(v.id) && goalMap.get(v.id) != null ? String(goalMap.get(v.id)) : "",
           saving: false,
           saved: false,
-          error: "",
+          goalError: "",
+          phoneError: "",
           editingPhone: false,
           phoneInput: v.phone ?? "",
           editingApiKey: false,
@@ -94,9 +96,10 @@ export default function VendedoresAdminPage() {
   async function saveGoal(id: string) {
     const row = rows.find((r) => r.id === id);
     if (!row) return;
+    if (!row.target.trim()) return; // sin monto: no hacer nada
     const amount = parseFloat(row.target.replace(/\./g, "").replace(",", "."));
-    if (isNaN(amount) || amount < 0) { updateRow(id, { error: "Monto inválido" }); return; }
-    updateRow(id, { saving: true, error: "", saved: false });
+    if (isNaN(amount) || amount < 0) { updateRow(id, { goalError: "Monto inválido" }); return; }
+    updateRow(id, { saving: true, goalError: "", saved: false });
     try {
       const res = await fetch("/api/goals", {
         method: "PUT",
@@ -105,7 +108,7 @@ export default function VendedoresAdminPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        updateRow(id, { error: data.error ?? "Error al guardar" });
+        updateRow(id, { goalError: data.error ?? "Error al guardar" });
       } else {
         updateRow(id, { saved: true });
         setTimeout(() => updateRow(id, { saved: false }), 2000);
@@ -118,7 +121,7 @@ export default function VendedoresAdminPage() {
   async function saveApiKey(id: string) {
     const row = rows.find((r) => r.id === id);
     if (!row) return;
-    updateRow(id, { saving: true, error: "" });
+    updateRow(id, { saving: true, phoneError: "" });
     try {
       const res = await fetch("/api/users", {
         method: "PATCH",
@@ -127,7 +130,7 @@ export default function VendedoresAdminPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        updateRow(id, { error: data.error ?? "Error al guardar" });
+        updateRow(id, { phoneError: data.error ?? "Error al guardar" });
       } else {
         updateRow(id, { callmebotApiKey: data.user.callmebotApiKey, editingApiKey: false, saved: true });
         setTimeout(() => updateRow(id, { saved: false }), 2000);
@@ -141,7 +144,7 @@ export default function VendedoresAdminPage() {
     const row = rows.find((r) => r.id === id);
     if (!row) return;
     const formattedPhone = formatArgentinePhone(row.phoneInput);
-    updateRow(id, { saving: true, error: "", phoneInput: formattedPhone });
+    updateRow(id, { saving: true, phoneError: "", phoneInput: formattedPhone });
     try {
       const res = await fetch("/api/users", {
         method: "PATCH",
@@ -150,7 +153,7 @@ export default function VendedoresAdminPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        updateRow(id, { error: data.error ?? "Error al guardar" });
+        updateRow(id, { phoneError: data.error ?? "Error al guardar" });
       } else {
         updateRow(id, { phone: data.user.phone, editingPhone: false, saved: true });
         setTimeout(() => updateRow(id, { saved: false }), 2000);
@@ -221,7 +224,7 @@ export default function VendedoresAdminPage() {
                     ) : (
                       <span className="editable-value">{row.phone ?? <span className="muted">— click para agregar</span>}</span>
                     )}
-                    {row.error && <span className="goal-inline-error">{row.error}</span>}
+                    {row.phoneError && <span className="goal-inline-error">{row.phoneError}</span>}
                   </td>
                   <td data-label="API Key CallMeBot" className="col-editable" onClick={() => !row.editingApiKey && updateRow(row.id, { editingApiKey: true, apiKeyInput: row.callmebotApiKey ?? "" })}>
                     {row.editingApiKey ? (
@@ -257,9 +260,10 @@ export default function VendedoresAdminPage() {
                       step="1000"
                       value={row.target}
                       placeholder="Sin objetivo"
-                      onChange={(e) => updateRow(row.id, { target: e.target.value, error: "", saved: false })}
+                      onChange={(e) => updateRow(row.id, { target: e.target.value, goalError: "", saved: false })}
                       onKeyDown={(e) => e.key === "Enter" && saveGoal(row.id)}
                     />
+                    {row.goalError && <span className="goal-inline-error">{row.goalError}</span>}
                   </td>
                   <td data-label="">
                     <button

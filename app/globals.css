@@ -1843,3 +1843,20 @@
   transition: background 0.15s;
 }
 .date-filter-apply:hover { background: var(--badema-primary-hover); }
+
+/* ── Modal vendedor — filtro por estado ── */
+.vendor-modal-state-chip-active {
+  background: var(--badema-primary-light);
+  border-color: var(--badema-primary);
+}
+.vendor-modal-clear-filter {
+  background: none;
+  border: 1px solid var(--badema-border);
+  border-radius: 20px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--badema-text-muted);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.vendor-modal-clear-filter:hover { background: var(--badema-bg-light); }

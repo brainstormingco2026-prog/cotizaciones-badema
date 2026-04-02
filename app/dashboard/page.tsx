@@ -132,6 +132,7 @@ export default function PanelControlPage() {
   const [vendorModal, setVendorModal] = useState<{ userId: string; name: string } | null>(null);
   const [vendorQuotations, setVendorQuotations] = useState<VendorQuotation[]>([]);
   const [vendorLoading, setVendorLoading] = useState(false);
+  const [vendorStateFilter, setVendorStateFilter] = useState<string | null>(null);
   const [datePreset, setDatePreset] = useState<DatePreset>("");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -181,6 +182,7 @@ export default function PanelControlPage() {
   function openVendorModal(userId: string, name: string) {
     setVendorModal({ userId, name });
     setVendorQuotations([]);
+    setVendorStateFilter(null);
     setVendorLoading(true);
     fetch(`/api/quotations?userId=${encodeURIComponent(userId)}`, { headers: getAuthHeader() })
       .then((r) => (r.ok ? r.json() : { quotations: [] }))
@@ -257,29 +259,43 @@ export default function PanelControlPage() {
                     <button
                       key={state}
                       type="button"
-                      className="vendor-modal-state-chip"
-                      onClick={() => { setVendorModal(null); router.push(`/dashboard/cotizaciones?estado=${state}`); }}
+                      className={`vendor-modal-state-chip${vendorStateFilter === state ? " vendor-modal-state-chip-active" : ""}`}
+                      onClick={() => setVendorStateFilter(vendorStateFilter === state ? null : state)}
                     >
                       <span className={`cotizacion-state state-${state}`}>{STATE_LABELS_MODAL[state]}</span>
                       <span className="vendor-modal-state-count">{vendorStateCounts[state] ?? 0}</span>
                     </button>
                   ))}
+                  {vendorStateFilter && (
+                    <button
+                      type="button"
+                      className="vendor-modal-clear-filter"
+                      onClick={() => setVendorStateFilter(null)}
+                    >
+                      × Todas
+                    </button>
+                  )}
                 </div>
-                {vendorQuotations.length === 0 ? (
-                  <p className="muted">Sin cotizaciones.</p>
-                ) : (
-                  <ul className="vendor-modal-list">
-                    {vendorQuotations.slice(0, 20).map((q) => (
-                      <li key={q.id}>
-                        <Link href={`/dashboard/cotizaciones/${q.id}`} onClick={() => setVendorModal(null)} className="vendor-modal-item">
-                          <span className={`cotizacion-state state-${q.state}`}>{STATE_LABELS_MODAL[q.state] ?? q.state}</span>
-                          <span className="vendor-modal-item-client">{q.client.name}</span>
-                          {q.importeTotalNeto && <span className="vendor-modal-item-amount">${q.importeTotalNeto}</span>}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                {(() => {
+                  const filtered = vendorStateFilter
+                    ? vendorQuotations.filter((q) => q.state === vendorStateFilter)
+                    : vendorQuotations;
+                  return filtered.length === 0 ? (
+                    <p className="muted">Sin cotizaciones{vendorStateFilter ? " en este estado" : ""}.</p>
+                  ) : (
+                    <ul className="vendor-modal-list">
+                      {filtered.map((q) => (
+                        <li key={q.id}>
+                          <Link href={`/dashboard/cotizaciones/${q.id}`} onClick={() => setVendorModal(null)} className="vendor-modal-item">
+                            <span className={`cotizacion-state state-${q.state}`}>{STATE_LABELS_MODAL[q.state] ?? q.state}</span>
+                            <span className="vendor-modal-item-client">{q.client.name}</span>
+                            {q.importeTotalNeto && <span className="vendor-modal-item-amount">${q.importeTotalNeto}</span>}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()}
               </div>
             )}
           </div>

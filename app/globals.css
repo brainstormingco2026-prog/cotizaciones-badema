@@ -926,6 +926,10 @@
   color: #15803d;
   font-weight: 600;
 }
+.state-saving {
+  font-size: 0.85rem;
+  color: var(--badema-text-muted);
+}
 
 .state-warning {
   margin-top: 0.5rem;

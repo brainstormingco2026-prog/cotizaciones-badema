@@ -111,8 +111,9 @@ export default function CotizacionDetallePage() {
     }
   }
 
-  async function handleStateChange() {
-    if (!q || !newState || newState === q.state) return;
+  async function handleStateChange(targetState: string) {
+    if (!q || targetState === q.state) return;
+    setNewState(targetState);
     setSavingState(true);
     setStateError(null);
     setStateWarning(null);
@@ -121,7 +122,7 @@ export default function CotizacionDetallePage() {
       const res = await fetch(`/api/quotations/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...getAuthHeader() },
-        body: JSON.stringify({ state: newState }),
+        body: JSON.stringify({ state: targetState }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -129,11 +130,12 @@ export default function CotizacionDetallePage() {
         setNewState(data.state);
         setStateOk(true);
         if (data.contabiliumWarning) {
-          setStateWarning(`Guardado en CRM. No se pudo sincronizar con Contabilium: ${data.contabiliumWarning}`);
+          setStateWarning(`No se pudo sincronizar con Contabilium: ${data.contabiliumWarning}`);
         }
         setTimeout(() => setStateOk(false), 3000);
       } else {
         setStateError(data.error ?? "Error al cambiar estado");
+        setNewState(q.state); // revertir el select al estado anterior
       }
     } finally {
       setSavingState(false);
@@ -166,7 +168,7 @@ export default function CotizacionDetallePage() {
           <div className="cotizacion-state-editor">
             <select
               value={newState || q.state}
-              onChange={(e) => { setNewState(e.target.value); setStateError(null); setStateOk(false); }}
+              onChange={(e) => handleStateChange(e.target.value)}
               className={`cotizacion-state-select state-${newState || q.state}`}
               disabled={savingState}
             >
@@ -174,17 +176,8 @@ export default function CotizacionDetallePage() {
                 <option key={s} value={s}>{STATE_LABELS[s]}</option>
               ))}
             </select>
-            {newState && newState !== q.state && (
-              <button
-                type="button"
-                onClick={handleStateChange}
-                disabled={savingState}
-                className={`btn-state-save${stateOk ? " btn-save-ok" : ""}`}
-              >
-                {savingState ? "…" : "✓"}
-              </button>
-            )}
-            {stateOk && <span className="state-saved-ok">Guardado ✓</span>}
+            {savingState && <span className="state-saving">…</span>}
+            {stateOk && <span className="state-saved-ok">✓</span>}
           </div>
           {stateError && <p className="goal-inline-error" style={{margin: "0.25rem 0 0"}}>{stateError}</p>}
           {stateWarning && <p className="state-warning" style={{margin: "0.25rem 0 0"}}>{stateWarning}</p>}

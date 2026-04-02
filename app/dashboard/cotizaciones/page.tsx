@@ -53,7 +53,17 @@ const STATE_ORDER: Record<string, number> = {
   facturada: 4,
 };
 
-type EditingCell = { id: string; field: "successPercent" | "followUpFreq" | "motivoRechazo" };
+const STATE_LABELS: Record<string, string> = {
+  borrador: "Borrador",
+  enviada: "Enviada",
+  aceptada: "Aprobada",
+  rechazada: "Rechazada",
+  facturada: "Facturada",
+};
+
+const ALL_STATES = ["borrador", "enviada", "aceptada", "rechazada", "facturada"] as const;
+
+type EditingCell = { id: string; field: "successPercent" | "followUpFreq" | "motivoRechazo" | "state" };
 
 export default function CotizacionesPage() {
   const searchParams = useSearchParams();
@@ -114,23 +124,27 @@ export default function CotizacionesPage() {
   const CLOSED_STATES = ["aceptada", "rechazada", "facturada"];
 
   function startEdit(q: Quotation, field: EditingCell["field"]) {
-    if (field !== "motivoRechazo" && CLOSED_STATES.includes(q.state)) return;
     if (field === "motivoRechazo" && q.state !== "rechazada") return;
+    if ((field === "successPercent" || field === "followUpFreq") && CLOSED_STATES.includes(q.state)) return;
     setEditing({ id: q.id, field });
     if (field === "successPercent") setEditValue(String(q.successPercent));
     else if (field === "followUpFreq") setEditValue(q.followUpFreq ?? "");
+    else if (field === "state") setEditValue(q.state);
     else setEditValue(q.motivoRechazo ?? "");
     setTimeout(() => inputRef.current?.focus(), 0);
   }
 
-  async function saveEdit(q: Quotation) {
+  async function saveEdit(q: Quotation, overrideValue?: string) {
     if (!editing) return;
+    const value = overrideValue ?? editValue;
     const body: Record<string, unknown> =
       editing.field === "successPercent"
-        ? { successPercent: Math.min(100, Math.max(0, Number(editValue) || 0)) }
+        ? { successPercent: Math.min(100, Math.max(0, Number(value) || 0)) }
         : editing.field === "followUpFreq"
-        ? { followUpFreq: editValue || null }
-        : { motivoRechazo: editValue || null };
+        ? { followUpFreq: value || null }
+        : editing.field === "state"
+        ? { state: value }
+        : { motivoRechazo: value || null };
 
     setEditing(null);
     const res = await fetch(`/api/quotations/${q.id}`, {
@@ -204,10 +218,26 @@ export default function CotizacionesPage() {
                   <td data-label="Fecha emisión" className="col-hide-mobile">{q.fechaEmision ? new Date(q.fechaEmision).toLocaleDateString("es-AR") : "—"}</td>
                   <td data-label="Número" className="col-hide-mobile">{q.numero ?? "—"}</td>
                   <td data-label="Importe neto" className="col-importe">{q.importeTotalNeto ?? "—"}</td>
-                  <td data-label="Estado">
-                    <span className={`cotizacion-state state-${q.state}`}>
-                      {q.state === "aceptada" ? "Aprobada" : q.state.charAt(0).toUpperCase() + q.state.slice(1)}
-                    </span>
+                  <td data-label="Estado" className="col-editable" onClick={() => startEdit(q, "state")}>
+                    {editing?.id === q.id && editing.field === "state" ? (
+                      <select
+                        ref={inputRef as React.RefObject<HTMLSelectElement>}
+                        value={editValue}
+                        onChange={(e) => { setEditValue(e.target.value); saveEdit(q, e.target.value); }}
+                        onKeyDown={(e) => { if (e.key === "Escape") setEditing(null); }}
+                        className={`inline-select cotizacion-state-select state-${editValue}`}
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                      >
+                        {ALL_STATES.map((s) => (
+                          <option key={s} value={s}>{STATE_LABELS[s]}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className={`cotizacion-state state-${q.state}`}>
+                        {STATE_LABELS[q.state] ?? q.state}
+                      </span>
+                    )}
                   </td>
                   <td data-label="Motivo rechazo" className={q.state === "rechazada" ? "col-editable" : ""} onClick={() => q.state === "rechazada" ? startEdit(q, "motivoRechazo") : undefined}>
                     {q.state === "rechazada" ? (
